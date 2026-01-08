@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(npx shadcn@latest init:*)",
-      "Bash(npx shadcn@latest add:*)"
+      "Bash(npx shadcn@latest add:*)",
+      "Skill(frontend-design:frontend-design)",
+      "Bash(tree:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
