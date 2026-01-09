@@ -71,6 +71,17 @@ function RemoteCursor({ editor, position, userName, color, containerRef }: Remot
         // Convert line/ch to linear position
         const pos = getPosFromLineCh(editor.state.doc, position);
         
+        if (pos === null) {
+            // Position not found in current doc (e.g. line deleted or not synced yet)
+            // Hide cursor or keep last position? 
+            // Better to hide or return to avoid jumping to 0
+            if (cursorRef.current) cursorRef.current.style.display = 'none';
+            return;
+        }
+
+        // Make sure it's visible again if we found a position
+        if (cursorRef.current) cursorRef.current.style.display = 'block';
+        
         const coords = editor.view.coordsAtPos(pos);
         
         // Get container rect to calculate relative position

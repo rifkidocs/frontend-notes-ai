@@ -43,7 +43,7 @@ export function getLineChFromPos(doc: Node, pos: number): LineCh {
 /**
  * Converts line/character coordinates back to a ProseMirror document position.
  */
-export function getPosFromLineCh(doc: Node, position: LineCh): number {
+export function getPosFromLineCh(doc: Node, position: LineCh): number | null {
   let lineIndex = 0;
   let targetPos = 0;
   let found = false;
@@ -65,5 +65,5 @@ export function getPosFromLineCh(doc: Node, position: LineCh): number {
     return true;
   });
 
-  return found ? targetPos : 0;
+  return found ? targetPos : null;
 }
