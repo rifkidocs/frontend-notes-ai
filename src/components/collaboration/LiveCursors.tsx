@@ -88,7 +88,7 @@ function RemoteCursor({ editor, position, userName, color, containerRef }: Remot
   return (
     <div
       ref={cursorRef}
-      className="absolute transition-transform duration-100 ease-out will-change-transform z-20 pointer-events-none"
+      className="absolute z-20 pointer-events-none"
       style={{
         left: 0,
         top: 0,
