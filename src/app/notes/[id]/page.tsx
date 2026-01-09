@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Editor } from '@/components/editor/Editor';
-import { AIContextMenu } from '@/components/editor/AIContextMenu';
 import { AvatarStack } from '@/components/collaboration/AvatarStack';
 import { PresenceIndicator } from '@/components/collaboration/PresenceIndicator';
 import { ShareModal } from '@/components/sharing/ShareModal';
@@ -12,8 +11,8 @@ import { useNotesStore } from '@/lib/stores/notes-store';
 import { useEditorStore } from '@/lib/stores/editor-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useCollaborationStore } from '@/lib/stores/collaboration-store';
-import { useDocumentSync } from '@/lib/websocket/document-sync';
-import { useCursorTracking } from '@/lib/websocket/cursor-tracking';
+// import { useDocumentSync } from '@/lib/websocket/document-sync';
+// import { useCursorTracking } from '@/lib/websocket/cursor-tracking';
 import { socketManager } from '@/lib/websocket/socket';
 import { NoteContent } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -36,29 +35,29 @@ export default function NoteEditorPage() {
   const { connect: connectCollab, disconnect: disconnectCollab } = useCollaborationStore();
 
   const [title, setTitle] = useState('');
-  const [editor, setEditor] = useState<any>(null);
+  const [content, setContent] = useState<NoteContent | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
   // Setup real-time collaboration for existing notes
   useEffect(() => {
-    if (noteId === 'new' || !editor) return;
+    if (noteId === 'new') return;
 
     // Connect to collaboration
     connectCollab(noteId);
-    const documentSync = useDocumentSync(noteId, editor);
-    const cursorTracker = useCursorTracking(noteId, editor);
+    // const documentSync = useDocumentSync(noteId, editor);
+    // const cursorTracker = useCursorTracking(noteId, editor);
 
     // Start tracking
-    documentSync.join();
-    cursorTracker.start();
+    // documentSync.join();
+    // cursorTracker.start();
 
     // Cleanup on unmount
     return () => {
-      documentSync.leave();
-      cursorTracker.stop();
+      // documentSync.leave();
+      // cursorTracker.stop();
       disconnectCollab();
     };
-  }, [noteId, editor, connectCollab, disconnectCollab]);
+  }, [noteId, connectCollab, disconnectCollab]);
 
   // Fetch note on mount
   useEffect(() => {
@@ -70,12 +69,17 @@ export default function NoteEditorPage() {
     fetchNote(noteId);
   }, [noteId, fetchNote]);
 
-  // Set title when note is loaded
+  // Set title and content when note is loaded
   useEffect(() => {
     if (currentNote) {
       setTitle(currentNote.title);
+      // Only set content if we haven't started editing yet?
+      // Or just trust currentNote is latest source of truth on load.
+      if (!content) {
+          setContent(currentNote.content);
+      }
     }
-  }, [currentNote]);
+  }, [currentNote]); // content dependency removed to avoid reset loop
 
   // Debounced save function
   const saveNote = useCallback(
@@ -115,9 +119,10 @@ export default function NoteEditorPage() {
 
   // Handle content change
   const handleContentChange = useCallback(
-    (content: NoteContent) => {
+    (newContent: NoteContent) => {
+      setContent(newContent);
       setHasChanges(true);
-      saveNote(title, content);
+      saveNote(title, newContent);
     },
     [title, saveNote]
   );
@@ -127,18 +132,19 @@ export default function NoteEditorPage() {
     (newTitle: string) => {
       setTitle(newTitle);
       setHasChanges(true);
-      // Will trigger save via content change or debounced separately
+      if (content) {
+          saveNote(newTitle, content);
+      }
     },
-    [saveNote]
+    [saveNote, content]
   );
 
   // Handle title blur to save
   const handleTitleBlur = useCallback(() => {
-    if (hasChanges && editor) {
-      const content = editor.getJSON();
+    if (hasChanges && content) {
       saveNote(title, content);
     }
-  }, [hasChanges, title, editor, saveNote]);
+  }, [hasChanges, title, content, saveNote]);
 
   if (isLoading && noteId !== 'new') {
     return (
@@ -229,8 +235,7 @@ export default function NoteEditorPage() {
                     size="sm"
                     className="h-7 px-2 text-xs"
                     onClick={() => {
-                      if (editor) {
-                        const content = editor.getJSON();
+                      if (content) {
                         saveNote(title, content);
                       }
                     }}
@@ -268,11 +273,10 @@ export default function NoteEditorPage() {
         {/* Editor */}
         <div className="flex-1 overflow-hidden">
           <Editor
-            content={initialContent}
+            key={noteId}
+            content={content || initialContent}
             onChange={handleContentChange}
-            onEditorReady={(editorInstance) => setEditor(editorInstance)}
           />
-          <AIContextMenu editor={editor} />
         </div>
       </div>
     </div>

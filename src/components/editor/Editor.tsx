@@ -1,30 +1,35 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
+import { NoteContent } from '@/lib/types';
 import { getExtensions } from '@/lib/tiptap/extensions';
 import { apiToTipTap, tipTapToApi } from '@/lib/tiptap/schema-matcher';
-import { NoteContent } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import {
   Bold,
   Italic,
-  Strikethrough,
-  Code,
   Heading1,
   Heading2,
   Heading3,
   List,
   ListOrdered,
   Quote,
+  Code,
   Undo,
   Redo,
-  Link,
-  Type,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { useCallback, useEffect } from 'react';
-import { SlashCommand } from './SlashCommand';
+import { aiApi } from '@/lib/api/ai';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface EditorProps {
   content: NoteContent;
@@ -32,273 +37,283 @@ interface EditorProps {
   placeholder?: string;
   onChange?: (content: NoteContent) => void;
   onReady?: () => void;
-  onEditorReady?: (editor: any) => void;
 }
 
 export function Editor({
   content,
   editable = true,
-  placeholder = "Type '/' for commands...",
+  placeholder = "Start writing...",
   onChange,
   onReady,
-  onEditorReady,
 }: EditorProps) {
-  // Safely convert content, with fallback
-  const safeContent = (() => {
-    try {
-      return apiToTipTap(content) || {
-        type: 'doc',
-        content: [{
-          type: 'paragraph',
-          content: [{ type: 'text', text: '' }],
-        }],
-      };
-    } catch {
-      return {
-        type: 'doc',
-        content: [{
-          type: 'paragraph',
-          content: [{ type: 'text', text: '' }],
-        }],
-      };
-    }
-  })();
+  const [showAIDialog, setShowAIDialog] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const editor = useEditor({
     extensions: getExtensions({ placeholder, editable }),
-    content: safeContent,
+    content: apiToTipTap(content),
     editable,
     onUpdate: ({ editor }) => {
       if (onChange) {
-        try {
-          const json = editor.getJSON();
-          const apiContent = tipTapToApi(json);
-          onChange(apiContent);
-        } catch (e) {
-          console.error('Error updating editor content:', e);
-        }
+        const json = editor.getJSON();
+        const apiContent = tipTapToApi(json);
+        onChange(apiContent);
       }
     },
-    onCreate: ({ editor }) => {
+    onCreate: () => {
       onReady?.();
-      onEditorReady?.(editor);
+    },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[50vh] p-4 max-w-none',
+      },
     },
   });
 
-  // Update content when prop changes
+  // Handle external updates
   useEffect(() => {
-    if (editor) {
-      try {
-        const tiptapContent = apiToTipTap(content);
-        const currentContent = editor.getJSON();
+    if (!editor) return;
 
-        // Only update if content is different
-        if (JSON.stringify(tiptapContent) !== JSON.stringify(currentContent)) {
-          editor.commands.setContent(tiptapContent, false);
-        }
-      } catch (e) {
-        // Ignore errors during initialization
-      }
+    // If the editor is focused, we assume the user is typing and we shouldn't 
+    // overwrite their work with external updates (unless we implement CRDT/Yjs properly later).
+    if (editor.isFocused) return;
+
+    // Convert API content to Tiptap JSON
+    const newContent = apiToTipTap(content);
+    
+    // Compare current content to avoid unnecessary updates
+    // JSON.stringify is a quick way to check deep equality for this purpose
+    const currentContent = editor.getJSON();
+    
+    // We only update if there's a meaningful difference.
+    // Note: This is a simplified check. Ideally, we'd use Yjs for real sync.
+    if (JSON.stringify(newContent) !== JSON.stringify(currentContent)) {
+       // Save cursor position if possible? No, if we replace content, cursor resets anyway.
+       // But we already checked !editor.isFocused, so cursor position matters less.
+       editor.commands.setContent(newContent);
     }
   }, [content, editor]);
 
+  // Update editable state
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(editable);
+    }
+  }, [editable, editor]);
+
+  const runAiCommand = async (command: 'fixGrammar' | 'summarize' | 'continueWriting' | 'generateBlog') => {
+    if (!editor) return;
+    
+    setIsAiLoading(true);
+    try {
+        const { from, to } = editor.state.selection;
+        const selectedText = editor.state.doc.textBetween(from, to, ' ');
+        const fullText = editor.getText();
+        const textToProcess = selectedText || fullText;
+
+        if (!textToProcess.trim()) {
+            toast.error("Please write or select some text first.");
+            setIsAiLoading(false);
+            return;
+        }
+
+        const response = await aiApi.executeAction(command, textToProcess, fullText);
+        
+        let result = '';
+        if (command === 'fixGrammar') result = response.correctedText || '';
+        if (command === 'summarize') result = response.summary || '';
+        if (command === 'continueWriting') result = response.continuation || '';
+        if (command === 'generateBlog') result = response.content || '';
+
+        if (result) {
+            if (selectedText) {
+                // Replace selection
+                editor.commands.insertContent(result);
+            } else {
+                // Append
+                editor.commands.insertContentAt(editor.state.doc.content.size, `\n${result}`);
+            }
+            toast.success("AI finished!");
+        }
+    } catch (e) {
+        console.error(e);
+        toast.error("Failed to run AI command");
+    } finally {
+        setIsAiLoading(false);
+        setShowAIDialog(false);
+    }
+  };
+
   if (!editor) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-[200px] bg-muted/10 rounded-lg">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
-  const ToolbarButton = ({
-    onClick,
-    active,
-    disabled,
-    children,
-    tooltip,
-  }: {
-    onClick: () => void;
-    active?: boolean;
-    disabled?: boolean;
-    children: React.ReactNode;
-    tooltip?: string;
-  }) => (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={onClick}
-      disabled={disabled}
-      className={`h-8 w-8 p-0 ${active ? 'bg-muted' : ''}`}
-      title={tooltip}
-    >
-      {children}
-    </Button>
-  );
-
   return (
-    <div
-      className="flex flex-col h-full"
-      onClick={(e) => {
-        // Focus editor on click anywhere in the editor area
-        if (editor && editable) {
-          const target = e.target as HTMLElement;
-          // Don't focus if clicking on toolbar or interactive elements
-          if (!target.closest('button')) {
-            editor.commands.focus('end');
-          }
-        }
-      }}
-    >
+    <div className="flex flex-col h-full bg-background rounded-md border w-full">
       {editable && (
-        <div className="flex items-center gap-1 p-2 border-b bg-background overflow-x-auto">
-          {/* Undo/Redo */}
-          <ToolbarButton
-            onClick={() => editor.chain().focus().undo().run()}
-            disabled={!editor.can().undo()}
-            tooltip="Undo (Ctrl+Z)"
-          >
-            <Undo className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().redo().run()}
-            disabled={!editor.can().redo()}
-            tooltip="Redo (Ctrl+Y)"
-          >
-            <Redo className="h-4 w-4" />
-          </ToolbarButton>
-
-          <Separator orientation="vertical" className="h-6 mx-1" />
-
-          {/* Text Type */}
-          <ToolbarButton
-            onClick={() => editor.chain().focus().setParagraph().run()}
-            active={editor.isActive('paragraph')}
-            tooltip="Text (Ctrl+Alt+0)"
-          >
-            <Type className="h-4 w-4" />
-          </ToolbarButton>
-
-          <Separator orientation="vertical" className="h-6 mx-1" />
-
-          {/* Headings */}
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            active={editor.isActive('heading', { level: 1 })}
-            tooltip="Heading 1 (Ctrl+Alt+1)"
-          >
-            <Heading1 className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            active={editor.isActive('heading', { level: 2 })}
-            tooltip="Heading 2 (Ctrl+Alt+2)"
-          >
-            <Heading2 className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            active={editor.isActive('heading', { level: 3 })}
-            tooltip="Heading 3 (Ctrl+Alt+3)"
-          >
-            <Heading3 className="h-4 w-4" />
-          </ToolbarButton>
-
-          <Separator orientation="vertical" className="h-6 mx-1" />
-
-          {/* Text Formatting */}
-          <ToolbarButton
+        <div className="flex items-center gap-1 p-2 border-b bg-muted/30 flex-wrap sticky top-0 z-10 w-full">
+           <Button
+            variant="ghost"
+            size="sm"
             onClick={() => editor.chain().focus().toggleBold().run()}
-            active={editor.isActive('bold')}
-            tooltip="Bold (Ctrl+B)"
+            disabled={!editor.can().chain().focus().toggleBold().run()}
+            className={editor.isActive('bold') ? 'bg-muted' : ''}
+            title="Bold"
           >
             <Bold className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => editor.chain().focus().toggleItalic().run()}
-            active={editor.isActive('italic')}
-            tooltip="Italic (Ctrl+I)"
+            disabled={!editor.can().chain().focus().toggleItalic().run()}
+            className={editor.isActive('italic') ? 'bg-muted' : ''}
+            title="Italic"
           >
             <Italic className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-            active={editor.isActive('strike')}
-            tooltip="Strikethrough"
-          >
-            <Strikethrough className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => editor.chain().focus().toggleCode().run()}
-            active={editor.isActive('code')}
-            tooltip="Inline Code"
+            disabled={!editor.can().chain().focus().toggleCode().run()}
+            className={editor.isActive('code') ? 'bg-muted' : ''}
+            title="Code"
           >
             <Code className="h-4 w-4" />
-          </ToolbarButton>
+          </Button>
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
-          {/* Lists */}
-          <ToolbarButton
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            className={editor.isActive('heading', { level: 1 }) ? 'bg-muted' : ''}
+            title="Heading 1"
+          >
+            <Heading1 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            className={editor.isActive('heading', { level: 2 }) ? 'bg-muted' : ''}
+            title="Heading 2"
+          >
+            <Heading2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            className={editor.isActive('heading', { level: 3 }) ? 'bg-muted' : ''}
+            title="Heading 3"
+          >
+            <Heading3 className="h-4 w-4" />
+          </Button>
+
+          <Separator orientation="vertical" className="h-6 mx-1" />
+
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            active={editor.isActive('bulletList')}
-            tooltip="Bullet List"
+            className={editor.isActive('bulletList') ? 'bg-muted' : ''}
+            title="Bullet List"
           >
             <List className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            active={editor.isActive('orderedList')}
-            tooltip="Numbered List"
+            className={editor.isActive('orderedList') ? 'bg-muted' : ''}
+            title="Ordered List"
           >
             <ListOrdered className="h-4 w-4" />
-          </ToolbarButton>
-
-          <Separator orientation="vertical" className="h-6 mx-1" />
-
-          {/* Blockquote */}
-          <ToolbarButton
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            active={editor.isActive('blockquote')}
-            tooltip="Quote"
+            className={editor.isActive('blockquote') ? 'bg-muted' : ''}
+            title="Quote"
           >
             <Quote className="h-4 w-4" />
-          </ToolbarButton>
+          </Button>
 
-          <Separator orientation="vertical" className="h-6 mx-1" />
+          <div className="flex-1" />
 
-          {/* Link */}
-          <ToolbarButton
-            onClick={() => {
-              const url = window.prompt('Enter URL:');
-              if (url) {
-                editor.chain().focus().setLink({ href: url }).run();
-              }
-            }}
-            active={editor.isActive('link')}
-            tooltip="Insert Link (Ctrl+K)"
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().undo().run()}
+            disabled={!editor.can().chain().focus().undo().run()}
+            title="Undo"
           >
-            <Link className="h-4 w-4" />
-          </ToolbarButton>
+            <Undo className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().redo().run()}
+            disabled={!editor.can().chain().focus().redo().run()}
+            title="Redo"
+          >
+            <Redo className="h-4 w-4" />
+          </Button>
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
-          {/* Slash command hint */}
-          <div className="text-xs text-muted-foreground px-2 hidden sm:block">
-            Type <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">/</kbd> for commands
-          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2 text-primary border-primary/20 hover:bg-primary/5"
+            onClick={() => setShowAIDialog(true)}
+          >
+            <Sparkles className="h-4 w-4" />
+            AI Actions
+          </Button>
         </div>
       )}
 
-      <EditorContent
-        editor={editor}
-        className="flex-1 overflow-y-auto prose dark:prose-invert max-w-none focus:outline-none
-          prose-headings:font-semibold prose-headings:tracking-tight
-          prose-p:leading-relaxed prose-p:text-foreground/90
-          prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-          prose-strong:text-foreground prose-strong:font-semibold
-          prose-code:font-mono prose-code:text-sm prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
-          prose-pre:bg-muted prose-pre:border prose-pre:border-border
-          prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4
-          prose-ul:list-disc prose-ol:list-decimal
-          focus:outline-none prose-p:m-0"
-      />
-      <SlashCommand editor={editor} />
+      <EditorContent editor={editor} className="flex-1 w-full" />
+
+      <Dialog open={showAIDialog} onOpenChange={setShowAIDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>AI Assistant</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+             <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => runAiCommand('fixGrammar')} disabled={isAiLoading}>
+                   Fix Grammar
+                </Button>
+                <Button variant="outline" onClick={() => runAiCommand('summarize')} disabled={isAiLoading}>
+                   Summarize
+                </Button>
+                <Button variant="outline" onClick={() => runAiCommand('continueWriting')} disabled={isAiLoading}>
+                   Continue Writing
+                </Button>
+                <Button variant="outline" onClick={() => runAiCommand('generateBlog')} disabled={isAiLoading}>
+                   Generate Blog Post
+                </Button>
+             </div>
+             {isAiLoading && (
+                 <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                     <Loader2 className="h-4 w-4 animate-spin" />
+                     Processing...
+                 </div>
+             )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
