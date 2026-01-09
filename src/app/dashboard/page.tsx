@@ -30,6 +30,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { useNotesStore } from '@/lib/stores/notes-store';
 import { Note } from '@/lib/types';
 import { toast } from 'sonner';
@@ -57,6 +66,7 @@ export default function DashboardPage() {
     useNotesStore();
 
   const [filter, setFilter] = useState<'all' | 'archived'>('all');
+  const [noteToDelete, setNoteToDelete] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     // Scroll to top on mount
@@ -69,12 +79,19 @@ export default function DashboardPage() {
     return !note.isArchived && !note.isDeleted;
   });
 
-  const handleDeleteNote = async (noteId: string, title: string) => {
+  const handleDeleteNote = (noteId: string, title: string) => {
+    setNoteToDelete({ id: noteId, title });
+  };
+
+  const confirmDelete = async () => {
+    if (!noteToDelete) return;
     try {
-      await deleteNote(noteId);
-      toast.success(`Note "${title}" deleted`);
+      await deleteNote(noteToDelete.id);
+      toast.success(`Note "${noteToDelete.title}" deleted`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to delete note');
+    } finally {
+      setNoteToDelete(null);
     }
   };
 
@@ -312,6 +329,25 @@ export default function DashboardPage() {
             </motion.div>
           ))}
       </motion.div>
+
+      <Dialog open={!!noteToDelete} onOpenChange={(open) => !open && setNoteToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Note</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{noteToDelete?.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNoteToDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

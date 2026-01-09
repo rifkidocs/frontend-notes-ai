@@ -30,7 +30,7 @@ export default function NoteEditorPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const { user } = useAuthStore();
-  const { currentNote, isLoading, fetchNote, updateNote, createNote } = useNotesStore();
+  const { currentNote, isLoading, fetchNote, updateNote, createNote, clearCurrentNote } = useNotesStore();
   const { isSaving, markSaved, setSaveError } = useEditorStore();
   const { connect: connectCollab, disconnect: disconnectCollab } = useCollaborationStore();
 
@@ -54,16 +54,18 @@ export default function NoteEditorPage() {
   // Fetch note on mount
   useEffect(() => {
     if (noteId === 'new') {
-      // New note - don't fetch
+      clearCurrentNote();
+      setTitle('');
+      setContent(null);
       return;
     }
 
     fetchNote(noteId);
-  }, [noteId, fetchNote]);
+  }, [noteId, fetchNote, clearCurrentNote]);
 
   // Set title and content when note is loaded
   useEffect(() => {
-    if (currentNote) {
+    if (currentNote && noteId !== 'new') {
       setTitle(currentNote.title);
       // Only set content if we haven't started editing yet?
       // Or just trust currentNote is latest source of truth on load.
@@ -71,7 +73,7 @@ export default function NoteEditorPage() {
           setContent(currentNote.content);
       }
     }
-  }, [currentNote]); // content dependency removed to avoid reset loop
+  }, [currentNote, noteId]); // content dependency removed to avoid reset loop
 
   // Debounced save function
   const saveNote = useCallback(

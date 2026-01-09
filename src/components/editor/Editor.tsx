@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import { NoteContent } from '@/lib/types';
 import { getExtensions } from '@/lib/tiptap/extensions';
 import { apiToTipTap, tipTapToApi } from '@/lib/tiptap/schema-matcher';
@@ -54,6 +54,7 @@ export function Editor({
 }: EditorProps) {
   const [showAIDialog, setShowAIDialog] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [loadingCommand, setLoadingCommand] = useState<string | null>(null);
 
   const editor = useEditor({
     extensions: getExtensions({ placeholder, editable }),
@@ -151,6 +152,7 @@ export function Editor({
     if (!editor) return;
     
     setIsAiLoading(true);
+    setLoadingCommand(command);
     try {
         const { from, to } = editor.state.selection;
         const selectedText = editor.state.doc.textBetween(from, to, ' ');
@@ -159,7 +161,6 @@ export function Editor({
 
         if (!textToProcess.trim()) {
             toast.error("Please write or select some text first.");
-            setIsAiLoading(false);
             return;
         }
 
@@ -186,6 +187,7 @@ export function Editor({
         toast.error("Failed to run AI command");
     } finally {
         setIsAiLoading(false);
+        setLoadingCommand(null);
         setShowAIDialog(false);
     }
   };
@@ -329,6 +331,45 @@ export function Editor({
       )}
 
       <div className="relative flex-1 w-full overflow-y-auto">
+        {editor && (
+          <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className="flex gap-1 p-1 overflow-hidden rounded-lg border bg-background shadow-xl items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => runAiCommand('fixGrammar')}
+              disabled={isAiLoading}
+              className="h-8 gap-1.5 px-2 text-xs font-medium hover:bg-muted"
+            >
+              {loadingCommand === 'fixGrammar' ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+              )}
+              Fix Grammar
+            </Button>
+            <Separator orientation="vertical" className="h-4 mx-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => runAiCommand('summarize')}
+              disabled={isAiLoading}
+              className="h-8 px-2 text-xs font-medium hover:bg-muted gap-1.5"
+            >
+              {loadingCommand === 'summarize' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Summarize
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => runAiCommand('continueWriting')}
+              disabled={isAiLoading}
+              className="h-8 px-2 text-xs font-medium hover:bg-muted gap-1.5"
+            >
+              {loadingCommand === 'continueWriting' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Continue
+            </Button>
+          </BubbleMenu>
+        )}
         {isCollabEnabled && <LiveCursors editor={editor} />}
         <EditorContent editor={editor} className="flex-1 w-full h-full" />
       </div>

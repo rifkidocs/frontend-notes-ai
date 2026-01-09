@@ -316,7 +316,7 @@ export default function Home() {
                 variant="outline"
                 size="lg"
                 onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
-                className="gap-2 text-base px-8 py-6 h-auto"
+                className="gap-2 text-base px-8 py-6 h-auto hover:bg-muted hover:text-muted-foreground hover:border-muted-foreground/20 transition-all"
               >
                 <Play className="h-4 w-4" />
                 Watch Demo
@@ -581,15 +581,6 @@ export default function Home() {
 
             {/* Enhanced step cards with diagonal flow */}
             <div className="relative">
-              {/* Animated connection line */}
-              <motion.div
-                initial={{ scaleX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 1, delay: 0.5 }}
-                className="hidden md:block absolute top-24 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-primary via-accent to-primary origin-left z-0"
-              />
-
               {[
                 {
                   step: '01',
@@ -670,20 +661,6 @@ export default function Home() {
                             className={`w-20 h-20 rounded-3xl bg-gradient-to-br ${step.iconBg} flex items-center justify-center`}
                           >
                             <step.icon className="h-10 w-10 text-white" />
-                          </motion.div>
-                          {/* Orbiting dots */}
-                          <motion.div
-                            animate={{
-                              rotate: 360,
-                            }}
-                            transition={{
-                              duration: 8,
-                              repeat: Infinity,
-                              ease: 'linear'
-                            }}
-                            className="absolute inset-0"
-                          >
-                            <div className="absolute top-0 right-0 w-3 h-3 bg-accent rounded-full" />
                           </motion.div>
                         </div>
 
@@ -832,7 +809,7 @@ export default function Home() {
                   <MotionButton
                     variant="outline"
                     size="lg"
-                    className="gap-2 text-lg px-10 py-6 h-auto"
+                    className="gap-2 text-lg px-10 py-6 h-auto hover:bg-muted hover:text-muted-foreground hover:border-muted-foreground/20 transition-all"
                     onClick={() => window.open('https://github.com', '_blank')}
                   >
                     <Github className="h-5 w-5" />
@@ -860,9 +837,9 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 w-1/3 h-full bg-gradient-to-r from-accent/5 to-transparent pointer-events-none" />
 
         <div className="container mx-auto px-6 py-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-12 mb-16">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-x-8 gap-y-12 lg:gap-12 mb-16">
             {/* Brand - Full width on mobile, 2 cols on desktop */}
-            <div className="sm:col-span-2 lg:col-span-2">
+            <div className="col-span-2 lg:col-span-2">
               <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
                 <motion.div
                   className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20"
@@ -913,7 +890,7 @@ export default function Home() {
             </div>
 
             {/* Product links */}
-            <div>
+            <div className="col-span-1">
               <h4 className="font-semibold mb-5 text-foreground">Product</h4>
               <ul className="space-y-4">
                 <li>
@@ -944,7 +921,7 @@ export default function Home() {
             </div>
 
             {/* Company links */}
-            <div>
+            <div className="col-span-1">
               <h4 className="font-semibold mb-5 text-foreground">Company</h4>
               <ul className="space-y-4">
                 <li>
@@ -976,7 +953,7 @@ export default function Home() {
             </div>
 
             {/* Legal links */}
-            <div>
+            <div className="col-span-1">
               <h4 className="font-semibold mb-5 text-foreground">Legal</h4>
               <ul className="space-y-4">
                 <li>

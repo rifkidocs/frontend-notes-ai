@@ -4,6 +4,7 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
+import BubbleMenu from '@tiptap/extension-bubble-menu';
 import { Extension } from '@tiptap/react';
 
 /**
@@ -75,10 +76,16 @@ export function getExtensions(options: {
       bulletList: {
         keepMarks: true,
         keepAttributes: false,
+        HTMLAttributes: {
+          class: 'list-disc pl-6 space-y-1',
+        },
       },
       orderedList: {
         keepMarks: true,
         keepAttributes: false,
+        HTMLAttributes: {
+          class: 'list-decimal pl-6 space-y-1',
+        },
       },
       codeBlock: false, // We'll use a custom code block if needed
     }),
@@ -115,6 +122,11 @@ export function getExtensions(options: {
       HTMLAttributes: {
         class: 'max-w-full h-auto rounded-lg',
       },
+    }),
+
+    // Bubble Menu
+    BubbleMenu.configure({
+      pluginKey: 'bubbleMenu',
     }),
 
     // Custom keymap

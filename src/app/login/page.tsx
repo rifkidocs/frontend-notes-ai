@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FileText, Sparkles, ArrowRight } from 'lucide-react';
+import { FileText, Sparkles, ArrowRight, Home } from 'lucide-react';
 import { authApi } from '@/lib/api/auth';
 import { MotionButton } from '@/components/motion';
 
@@ -151,7 +152,7 @@ export default function LoginPage() {
             >
               <button
                 onClick={handleGoogleLogin}
-                className="w-full h-12 px-4 rounded-xl border-2 border-border bg-background hover:bg-accent hover:border-accent transition-all duration-200 flex items-center justify-center gap-3 group shadow-sm hover:shadow-md"
+                className="w-full h-12 px-4 rounded-xl border-2 border-border bg-background hover:bg-muted hover:border-muted transition-all duration-200 flex items-center justify-center gap-3 group shadow-sm hover:shadow-md"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path
@@ -176,7 +177,21 @@ export default function LoginPage() {
               </button>
             </motion.div>
 
-            {/* GitHub Button */}
+            {/* Back to Home Button */}
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Link
+                href="/"
+                className="w-full h-12 px-4 rounded-xl border-2 border-dashed border-border bg-transparent hover:bg-muted hover:border-muted-foreground/20 transition-all duration-200 flex items-center justify-center gap-3 group shadow-sm"
+              >
+                <Home className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="font-medium text-muted-foreground group-hover:text-foreground">Back to Home</span>
+              </Link>
+            </motion.div>
+
+            {/* GitHub Button (Disabled)
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -192,6 +207,7 @@ export default function LoginPage() {
                 <ArrowRight className="h-4 w-4 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
               </button>
             </motion.div>
+            */}
           </div>
 
           {/* Features */}
