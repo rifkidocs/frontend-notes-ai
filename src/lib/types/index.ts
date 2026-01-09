@@ -94,8 +94,8 @@ export interface CollaborationUser {
 }
 
 export interface CursorPosition {
-  from: number;
-  to: number;
+  line: number;
+  ch: number;
 }
 
 export interface DocumentOperation {

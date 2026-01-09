@@ -3,6 +3,7 @@
 import { useCollaborationStore } from '@/lib/stores/collaboration-store';
 import { Editor } from '@tiptap/react';
 import { useEffect, useRef } from 'react';
+import { getPosFromLineCh, LineCh } from '@/lib/tiptap/cursor-conversion';
 
 interface LiveCursorsProps {
   editor: Editor | null;
@@ -39,10 +40,10 @@ export function LiveCursors({ editor }: LiveCursorsProps) {
 interface RemoteCursorProps {
   editor: Editor;
   userId: string;
-  position: { from: number; to: number };
+  position: LineCh;
   userName: string;
   color: string;
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 function RemoteCursor({ editor, position, userName, color, containerRef }: RemoteCursorProps) {
@@ -56,14 +57,10 @@ function RemoteCursor({ editor, position, userName, color, containerRef }: Remot
     if (!cursorRef.current || !editor || !editor.view || !containerRef.current) return;
 
     try {
-        // use view.coordsAtPos to get coordinates
-        // We use 'from' position for the cursor
-        const { from } = position;
+        // Convert line/ch to linear position
+        const pos = getPosFromLineCh(editor.state.doc, position);
         
-        // Ensure position is within bounds
-        const safePos = Math.min(Math.max(0, from), editor.state.doc.content.size);
-        
-        const coords = editor.view.coordsAtPos(safePos);
+        const coords = editor.view.coordsAtPos(pos);
         
         // Get container rect to calculate relative position
         const containerRect = containerRef.current.getBoundingClientRect();
@@ -76,19 +73,8 @@ function RemoteCursor({ editor, position, userName, color, containerRef }: Remot
         const top = coords.top - containerRect.top + scrollTop;
         const left = coords.left - containerRect.left + scrollLeft;
         
-        // console.log('[LiveCursors] Update:', { 
-        //     userId, 
-        //     safePos, 
-        //     coordsTop: coords.top, 
-        //     coordsLeft: coords.left,
-        //     containerTop: containerRect.top,
-        //     scrollTop,
-        //     calcTop: top,
-        //     calcLeft: left
-        // });
-
         if (isNaN(top) || isNaN(left)) {
-            console.warn('[LiveCursors] Invalid coordinates:', { top, left });
+            // Console warn removed to avoid spam
             return;
         }
         

@@ -98,7 +98,7 @@ export const useCollaborationStore = create<CollaborationState>((set, get) => ({
       users,
     }),
 
-  updateCursor: (userId, position, userName, color) =>
+  updateCursor: (userId: string, position: CursorPosition, userName: string, color: string) =>
     set((state) => {
       const newCursors = new Map(state.cursors);
       newCursors.set(userId, { position, user: { id: userId, name: userName }, color });

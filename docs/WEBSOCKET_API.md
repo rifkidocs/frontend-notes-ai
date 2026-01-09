@@ -9,6 +9,7 @@ Dokumen ini berisi spesifikasi teknis untuk implementasi fitur Real-time Collabo
 **Transports:** `['websocket', 'polling']`
 
 ### Authentication
+
 Token JWT harus dikirim saat handshake awal. Bisa melalui objek `auth` atau header.
 
 ```javascript
@@ -16,7 +17,7 @@ import { io } from "socket.io-client";
 
 const socket = io("http://localhost:5000", {
   auth: {
-    token: "YOUR_JWT_TOKEN" // Dapatkan dari login response
+    token: "YOUR_JWT_TOKEN", // Dapatkan dari login response
   },
   // Alternatif via headers:
   // extraHeaders: {
@@ -32,78 +33,100 @@ const socket = io("http://localhost:5000", {
 Digunakan untuk bergabung ke sesi edit, meninggalkan sesi, dan sinkronisasi konten.
 
 ### 1. Join Document room
+
 Panggil ini saat user membuka halaman editor.
 
-*   **Emit (Client -> Server):** `document:join`
-    ```javascript
-    socket.emit("document:join", { noteId: "note_123" });
-    ```
+- **Emit (Client -> Server):** `document:join`
 
-*   **Listen (Server -> Client):** `document:users` (Daftar user saat ini)
-    ```javascript
-    socket.on("document:users", ({ users }) => {
-      console.log("Current users in room:", users);
-      // users: [{ id: "user_1", name: "Alice" }, ...]
-    });
-    ```
+  ```javascript
+  socket.emit("document:join", { noteId: "your_note_id" });
+  ```
 
-*   **Listen (Server -> Client):** `document:user:joined` (Notifikasi user baru masuk)
-    ```javascript
-    socket.on("document:user:joined", ({ userId, userName, socketId }) => {
-      console.log(`${userName} joined!`);
-    });
-    ```
+  _Note: Server akan otomatis meng-handle room dengan prefix `note_{id}`._
+
+- **Listen (Server -> Client):** `document:users` (Daftar user saat ini)
+  Diterima oleh user yang baru saja join.
+
+  ```javascript
+  socket.on("document:users", ({ users }) => {
+    console.log("Current users in room:", users);
+    // users: [{ id: "user_1", name: "Alice" }, ...]
+  });
+  ```
+
+- **Listen (Server -> Client):** `document:user:joined` (Notifikasi user baru masuk)
+  Diterima oleh user lain di room yang sama.
+  ```javascript
+  socket.on("document:user:joined", ({ userId, userName, socketId }) => {
+    console.log(`${userName} joined!`);
+  });
+  ```
 
 ### 2. Leave Document
+
 Panggil saat user menutup tab atau pindah halaman (unmount component).
 
-*   **Emit:** `document:leave`
-    ```javascript
-    socket.emit("document:leave", { noteId: "note_123" });
-    ```
+- **Emit:** `document:leave`
 
-*   **Listen:** `document:user:left`
-    ```javascript
-    socket.on("document:user:left", ({ userId }) => {
-      // Remove user cursor and avatar
-    });
-    ```
+  ```javascript
+  socket.emit("document:leave", { noteId: "your_note_id" });
+  ```
 
-### 3. Sync Content (Editing)
-Sistem menggunakan pelacakan versi sederhana. **Note:** Untuk produksi skala besar, disarankan menggunakan library OT/CRDT (seperti Yjs), namun implementasi saat ini menggunakan array operations.
+- **Listen:** `document:user:left`
+  ```javascript
+  socket.on("document:user:left", ({ userId }) => {
+    // Remove user cursor and avatar
+  });
+  ```
 
-*   **Emit:** `document:edit`
-    ```javascript
-    socket.emit("document:edit", {
-      noteId: "note_123",
-      version: 5, // Versi dokumen terakhir yang diketahui client
-      operations: [
-        // Format operasi tergantung editor (e.g., Delta untuk Quill/Slate)
-        { insert: "Hello world", at: 0 }
-      ]
-    });
-    ```
+### 3. Sync Content (Editing) - Optimistic Concurrency
 
-*   **Listen:** `document:updated` (Broadcast ke semua client di room)
-    ```javascript
-    socket.on("document:updated", ({ operations, version, userId, userName, timestamp }) => {
+Sistem menggunakan **Optimistic Concurrency Control**.
+Client harus mengirimkan **Base Version** (versi dokumen sebelum diedit). Jika cocok dengan versi server, server akan menaikkan versi dan broadcast update.
+
+- **Emit:** `document:edit`
+
+  ```javascript
+  socket.emit("document:edit", {
+    noteId: "your_note_id",
+    version: 0, // PENTING: Kirim versi dokumen saat ini (Base Version)
+    operations: [
+      // Format operasi editor
+      { insert: "Hello world", at: 0 },
+    ],
+  });
+  ```
+
+- **Listen:** `document:updated` (Broadcast ke **SEMUA** client, termasuk sender)
+  Backend akan mem-broadcast event ini segera setelah validasi versi sukses.
+
+  ```javascript
+  socket.on(
+    "document:updated",
+    ({ operations, version, userId, userName, timestamp }) => {
+      // Update 'currentVersion' client ke 'version' yang baru diterima.
+      // Jika 'userId' adalah saya, biasanya kita abaikan operations karena sudah diterapkan (optimistic UI),
+      // ATAU gunakan untuk konfirmasi bahwa server sudah menerima perubahan (ack).
+
       if (userId !== myUserId) {
-        // Apply operations to editor
         editor.applyOps(operations);
       }
-      // Update local version ref
-      currentVersion = version;
-    });
-    ```
 
-*   **Error Handling (Conflict):** `document:conflict`
-    Terjadi jika client mencoba mengirim edit dengan versi kadaluarsa.
-    ```javascript
-    socket.on("document:conflict", ({ currentVersion, yourVersion }) => {
-      // Logic untuk fetch ulang dokumen penuh atau rebase changes
-      console.warn("Version mismatch, reloading document...");
-    });
-    ```
+      // PENTING: Selalu update versi lokal
+      localDocVersion = version;
+    }
+  );
+  ```
+
+- **Error Handling (Conflict):** `document:conflict`
+  Terjadi jika client mengirim `version` yang tidak sama dengan server (misal: user lain sudah mengedit duluan).
+  ```javascript
+  socket.on("document:conflict", ({ currentVersion, yourVersion }) => {
+    console.warn(`Conflict! Server: ${currentVersion}, You: ${yourVersion}`);
+    // Action: Fetch ulang konten terbaru dari server untuk reset state
+    // atau lakukan logic rebase jika memungkinkan.
+  });
+  ```
 
 ---
 
@@ -112,61 +135,61 @@ Sistem menggunakan pelacakan versi sederhana. **Note:** Untuk produksi skala bes
 Fitur visual untuk melihat siapa yang sedang aktif dan di mana mereka mengetik.
 
 ### 1. Cursor Movement
-Kirim posisi kursor setiap kali user memindahkan kursor atau mengetik. (Gunakan debounce/throttle ~50-100ms agar tidak spam).
 
-*   **Emit:** `cursor:update`
-    ```javascript
-    socket.emit("cursor:update", {
-      noteId: "note_123",
-      position: { line: 10, ch: 5 } // Sesuaikan dengan format editor (e.g., offset/path)
-    });
-    ```
+Kirim posisi kursor setiap kali user memindahkan kursor atau mengetik.
 
-*   **Listen:** `cursor:moved`
-    ```javascript
-    socket.on("cursor:moved", ({ userId, userName, position, color }) => {
-      // Render remote cursor
-      // color: Hex color generated by server consistent for userId
-      renderRemoteCursor(userId, position, color, userName);
-    });
-    ```
+- **Emit:** `cursor:update`
+
+  ```javascript
+  socket.emit("cursor:update", {
+    noteId: "your_note_id",
+    position: { line: 10, ch: 5 }, // Sesuaikan dengan editor
+  });
+  ```
+
+- **Listen:** `cursor:moved`
+  ```javascript
+  socket.on("cursor:moved", ({ userId, userName, position, color }) => {
+    // Render remote cursor user lain
+    // 'color' dibuat konsisten oleh backend berdasarkan userId
+  });
+  ```
 
 ### 2. Presence (Online Status)
-Mengetahui siapa saja yang sedang online (mirip dengan event join, tapi lebih spesifik untuk status bar).
 
-*   **Emit:** `presence:subscribe`
-    ```javascript
-    socket.emit("presence:subscribe", { noteId: "note_123" });
-    ```
+Mengetahui siapa saja yang sedang online di dokumen ini.
 
-*   **Listen:** `presence:online`
-    ```javascript
-    socket.on("presence:online", ({ users }) => {
-      // Update daftar avatar di header
-    });
-    ```
+- **Emit:** `presence:subscribe`
 
-*   **Listen:** `presence:offline`
-    ```javascript
-    socket.on("presence:offline", ({ userId }) => {
-      // Set status user jadi offline/greyed out
-    });
-    ```
+  ```javascript
+  socket.emit("presence:subscribe", { noteId: "your_note_id" });
+  ```
+
+- **Listen:** `presence:online`
+
+  ```javascript
+  socket.on("presence:online", ({ users }) => {
+    // users: [{ id: "user_1" }, ...]
+  });
+  ```
+
+- **Listen:** `presence:offline`
+  Event ini dibroadcast ke semua room dokumen yang ditempati user saat user disconnect.
+  ```javascript
+  socket.on("presence:offline", ({ userId }) => {
+    // Set status user jadi offline
+  });
+  ```
 
 ---
 
 ## ⚠️ Error Handling
 
-Socket.io akan mengirim event `error` jika terjadi masalah (auth gagal, permission denied, dll).
+Socket.io akan mengirim event `error` jika terjadi masalah (auth gagal, permission denied, invalid data).
 
 ```javascript
 socket.on("error", (err) => {
   console.error("Socket error:", err.message);
-  // Tampilkan toast/alert ke user
-});
-
-socket.on("connect_error", (err) => {
-  console.error("Connection failed:", err.message);
-  // Biasanya karena token invalid atau server down
+  // Tampilkan toast error
 });
 ```

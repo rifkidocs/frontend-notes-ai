@@ -2,6 +2,7 @@ import { Editor } from '@tiptap/react';
 import { socketManager } from './socket';
 import { useCollaborationStore } from '@/lib/stores/collaboration-store';
 import { debounce } from '@/lib/utils/debounce';
+import { getLineChFromPos, LineCh } from '@/lib/tiptap/cursor-conversion';
 
 type DebouncedFunction<T extends (...args: any[]) => any> = (
   ...args: Parameters<T>
@@ -11,7 +12,7 @@ export class CursorTracker {
   private noteId: string;
   private editor: Editor | null;
   private cleanup: (() => void) | null = null;
-  private updateCursorDebounced: DebouncedFunction<(position: { from: number; to: number }) => void>;
+  private updateCursorDebounced: DebouncedFunction<(position: LineCh) => void>;
 
   constructor(noteId: string, editor: Editor | null) {
     this.noteId = noteId;
@@ -28,7 +29,7 @@ export class CursorTracker {
     const handleCursorMoved = (data: {
       userId: string;
       userName: string;
-      position: { from: number; to: number };
+      position: LineCh;
       color: string;
     }) => {
       // Don't track our own cursor
@@ -45,8 +46,9 @@ export class CursorTracker {
     // Track cursor position changes in editor
     if (this.editor) {
       this.editor.on('selectionUpdate', () => {
-        const { from, to } = this.editor!.state.selection;
-        this.updateCursorDebounced({ from, to });
+        const { from } = this.editor!.state.selection;
+        const position = getLineChFromPos(this.editor!.state.doc, from);
+        this.updateCursorDebounced(position);
       });
     }
 
@@ -66,7 +68,7 @@ export class CursorTracker {
     }
   }
 
-  private sendCursorUpdate(position: { from: number; to: number }) {
+  private sendCursorUpdate(position: LineCh) {
     if (socketManager.isConnected()) {
         socketManager.emit('cursor:update', {
           noteId: this.noteId,
@@ -79,3 +81,4 @@ export class CursorTracker {
 export function useCursorTracking(noteId: string, editor: Editor | null) {
   return new CursorTracker(noteId, editor);
 }
+
