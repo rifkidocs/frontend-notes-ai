@@ -299,7 +299,7 @@ export function SlashCommand({ editor }: SlashCommandProps) {
                 <button
                   key={cmd.id}
                   onClick={() => executeCommand(cmd)}
-                  className="w-full text-left px-2 py-2 text-sm hover:bg-accent rounded-md flex items-start gap-3 transition-colors"
+                  className="w-full text-left px-2 py-2 text-sm hover:bg-muted rounded-md flex items-start gap-3 transition-colors"
                 >
                   <div className="mt-0.5 text-primary flex-shrink-0">{cmd.icon}</div>
                   <div className="flex-1 min-w-0">

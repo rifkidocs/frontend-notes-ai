@@ -124,7 +124,7 @@ export function Editor({
       size="sm"
       onClick={onClick}
       disabled={disabled}
-      className={`h-8 w-8 p-0 ${active ? 'bg-accent' : ''}`}
+      className={`h-8 w-8 p-0 ${active ? 'bg-muted' : ''}`}
       title={tooltip}
     >
       {children}

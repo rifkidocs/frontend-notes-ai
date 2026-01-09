@@ -200,14 +200,14 @@ export default function NoteEditorPage() {
           </div>
 
           {/* Center: Title Input */}
-          <div className="flex-1 min-w-0 max-w-2xl">
+          <div className="flex-1 min-w-0">
             <Input
               type="text"
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
               onBlur={handleTitleBlur}
               placeholder="Untitled"
-              className="text-base font-semibold text-foreground border-none shadow-none focus-visible:ring-0 px-0 h-auto text-center"
+              className="text-base font-semibold text-foreground border-none shadow-none focus-visible:ring-0 px-0 h-auto text-center max-w-2xl mx-auto"
             />
           </div>
 
