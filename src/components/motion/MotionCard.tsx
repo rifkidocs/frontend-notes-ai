@@ -16,7 +16,7 @@ export const cardVariants = {
     transition: {
       type: 'tween' as const,
       duration: 0.3,
-      ease: 'easeOut',
+      ease: 'easeOut' as const,
     },
   },
   hover: {
@@ -24,7 +24,7 @@ export const cardVariants = {
     transition: {
       type: 'tween' as const,
       duration: 0.2,
-      ease: 'easeOut',
+      ease: 'easeOut' as const,
     },
   },
   tap: {

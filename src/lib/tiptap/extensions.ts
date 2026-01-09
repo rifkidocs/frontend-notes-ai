@@ -46,7 +46,7 @@ export const CustomKeymap = Extension.create({
       'Mod-Alt-6': () => this.editor.commands.toggleHeading({ level: 6 }),
       'Mod-Alt-0': () => this.editor.commands.setParagraph(),
       // Link
-      'Mod-k': () => this.editor.commands.toggleLink(),
+      // 'Mod-k': () => this.editor.commands.toggleLink({ href: '' }), // Requires href
       // Other shortcuts
       'Mod-Shift-x': () => this.editor.commands.deleteSelection(),
       'Mod-Alt-c': () => this.editor.commands.unsetAllMarks(),
