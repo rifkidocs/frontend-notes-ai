@@ -18,6 +18,7 @@ interface NotesState {
 
   // Actions
   fetchNotes: (params?: { page?: number; limit?: number; search?: string }) => Promise<void>;
+  fetchSharedNotes: (params?: { page?: number; limit?: number }) => Promise<void>;
   fetchNote: (id: string) => Promise<void>;
   createNote: (data: CreateNoteData) => Promise<Note>;
   updateNote: (id: string, data: UpdateNoteData) => Promise<void>;
@@ -65,6 +66,37 @@ export const useNotesStore = create<NotesState>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to fetch notes',
+        isLoading: false,
+      });
+    }
+  },
+
+  fetchSharedNotes: async (params = {}) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.page) queryParams.append('page', params.page.toString());
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+
+      const response = await apiClient.get<{
+        notes: Note[];
+        pagination: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        };
+      }>(`/notes/shared?${queryParams.toString()}`);
+
+      set({
+        sharedNotes: response.notes,
+        pagination: response.pagination,
+        isLoading: false,
+      });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to fetch shared notes',
         isLoading: false,
       });
     }
