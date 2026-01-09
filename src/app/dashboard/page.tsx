@@ -59,6 +59,8 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState<'all' | 'archived'>('all');
 
   useEffect(() => {
+    // Scroll to top on mount
+    window.scrollTo(0, 0);
     fetchNotes();
   }, [fetchNotes]);
 
@@ -99,22 +101,15 @@ export default function DashboardPage() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="p-6 lg:p-8"
-    >
+    <div className="p-6 lg:p-8">
       {/* Header Section */}
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.4 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <motion.h1
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
               className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-foreground via-display to-foreground bg-clip-text text-transparent"
             >
               My Notes
@@ -122,7 +117,7 @@ export default function DashboardPage() {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
               className="text-muted-foreground mt-2 flex items-center gap-2"
             >
               <FileText className="h-4 w-4" />
@@ -133,9 +128,9 @@ export default function DashboardPage() {
           </div>
 
           <motion.div
-            initial={{ x: 20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.4 }}
           >
             <MotionButton
               variant="default"
@@ -150,12 +145,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Filter Tabs */}
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex gap-2 p-1 bg-muted/50 rounded-xl w-fit"
-        >
+        <div className="flex gap-2 p-1 bg-muted/50 rounded-xl w-fit">
           {(['all', 'archived'] as const).map((f) => (
             <motion.button
               key={f}
@@ -181,14 +171,15 @@ export default function DashboardPage() {
               )}
             </motion.button>
           ))}
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
 
       {/* Loading State */}
       {isLoading && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -224,117 +215,109 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       {/* Empty State */}
-      <AnimatePresence mode="wait">
-        {!isLoading && !error && filteredNotes.length === 0 && (
+      {!isLoading && !error && filteredNotes.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col items-center justify-center py-20"
+        >
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center justify-center py-20"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+            className="relative"
           >
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+              {filter === 'archived' ? (
+                <FolderOpen className="h-12 w-12 text-muted-foreground" />
+              ) : (
+                <FileText className="h-12 w-12 text-muted-foreground" />
+              )}
+            </div>
             <motion.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{
-                type: 'spring',
-                stiffness: 200,
-                damping: 15,
-                delay: 0.1,
+              animate={{
+                scale: [1, 1.2, 1],
+                rotate: [0, 90, 0],
               }}
-              className="relative"
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center"
             >
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                {filter === 'archived' ? (
-                  <FolderOpen className="h-12 w-12 text-muted-foreground" />
-                ) : (
-                  <FileText className="h-12 w-12 text-muted-foreground" />
-                )}
-              </div>
-              {/* Decorative elements */}
-              <motion.div
-                animate={{
-                  scale: [1, 1.2, 1],
-                  rotate: [0, 90, 0],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-                className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center"
-              >
-                <Sparkles className="h-4 w-4 text-accent" />
-              </motion.div>
+              <Sparkles className="h-4 w-4 text-accent" />
             </motion.div>
-
-            <motion.h3
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-xl font-semibold mt-6 mb-2"
-            >
-              {filter === 'archived' ? 'No archived notes' : 'No notes yet'}
-            </motion.h3>
-
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-muted-foreground text-center max-w-sm mb-8"
-            >
-              {filter === 'archived'
-                ? 'Notes you archive will appear here'
-                : 'Create your first note and start capturing your ideas'}
-            </motion.p>
-
-            {filter !== 'archived' && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <MotionButton size="lg" onClick={handleCreateNote}>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Create Your First Note
-                </MotionButton>
-              </motion.div>
-            )}
           </motion.div>
-        )}
-      </AnimatePresence>
+
+          <motion.h3
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-xl font-semibold mt-6 mb-2"
+          >
+            {filter === 'archived' ? 'No archived notes' : 'No notes yet'}
+          </motion.h3>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-muted-foreground text-center max-w-sm mb-8"
+          >
+            {filter === 'archived'
+              ? 'Notes you archive will appear here'
+              : 'Create your first note and start capturing your ideas'}
+          </motion.p>
+
+          {filter !== 'archived' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              <MotionButton size="lg" onClick={handleCreateNote}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Create Your First Note
+              </MotionButton>
+            </motion.div>
+          )}
+        </motion.div>
+      )}
 
       {/* Notes Grid */}
-      <AnimatePresence mode="wait">
-        {!isLoading && !error && filteredNotes.length > 0 && (
-          <motion.div
-            variants={staggerContainerVariants}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-          >
-            {filteredNotes.map((note, index) => (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+      >
+        {!isLoading && !error && filteredNotes.length > 0 &&
+          filteredNotes.map((note, index) => (
+            <motion.div
+              key={note.id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.05, duration: 0.2 }}
+            >
               <NoteCard
-                key={note.id}
                 note={note}
-                index={index}
                 onClick={() => router.push(`/notes/${note.id}`)}
                 onDelete={() => handleDeleteNote(note.id, note.title)}
                 onArchive={() => handleArchiveNote(note.id)}
                 onRestore={() => handleRestoreNote(note.id)}
                 isArchivedView={filter === 'archived'}
               />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+            </motion.div>
+          ))}
+      </motion.div>
+    </div>
   );
 }
 
 function NoteCard({
   note,
-  index,
   onClick,
   onDelete,
   onArchive,
@@ -342,7 +325,6 @@ function NoteCard({
   isArchivedView,
 }: {
   note: Note;
-  index: number;
   onClick: () => void;
   onDelete: () => void;
   onArchive: () => void;
@@ -377,8 +359,10 @@ function NoteCard({
   return (
     <MotionCard
       variant="glass"
-      index={index}
-      onClick={onClick}
+      skipAnimation={true}
+      initial={undefined}
+      animate={undefined}
+      variants={undefined}
       className="group relative p-5 cursor-pointer overflow-hidden"
     >
       {/* Gradient overlay on hover */}

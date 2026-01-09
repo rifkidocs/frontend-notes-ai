@@ -18,7 +18,8 @@ import { socketManager } from '@/lib/websocket/socket';
 import { NoteContent } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Loader2, ArrowLeft, Share2, MoreVertical } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Save, Loader2, ArrowLeft, Settings, Menu, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { debounce } from '@/lib/utils/debounce';
@@ -27,6 +28,7 @@ export default function NoteEditorPage() {
   const router = useRouter();
   const params = useParams();
   const noteId = params.id as string;
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const { user } = useAuthStore();
   const { currentNote, isLoading, fetchNote, updateNote, createNote } = useNotesStore();
@@ -87,6 +89,7 @@ export default function NoteEditorPage() {
           });
           router.replace(`/notes/${newNote.id}`);
           toast.success('Note created');
+          setHasChanges(false);
         } catch (error) {
           setSaveError(error instanceof Error ? error.message : 'Failed to create note');
           toast.error('Failed to create note');
@@ -99,6 +102,7 @@ export default function NoteEditorPage() {
             content: noteContent,
           });
           markSaved();
+          setHasChanges(false);
           toast.success('Note saved');
         } catch (error) {
           setSaveError(error instanceof Error ? error.message : 'Failed to save note');
@@ -167,69 +171,97 @@ export default function NoteEditorPage() {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <NotesSidebar noteId={noteId} />
+      <NotesSidebar noteId={noteId} isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex items-center gap-4 px-6 py-4 border-b bg-background">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+        <header className="h-16 border-b border-border flex items-center px-6 gap-4 backdrop-blur-sm bg-background/50">
+          {/* Left: Menu Toggle + Back Button */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </Button>
+            <Separator orientation="vertical" className="h-6" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => router.back()}
+              title="Back to Dashboard"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </div>
 
-          {/* Title Input */}
-          <div className="flex-1">
+          {/* Center: Title Input */}
+          <div className="flex-1 min-w-0 max-w-2xl">
             <Input
               type="text"
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
               onBlur={handleTitleBlur}
               placeholder="Untitled"
-              className="text-xl font-semibold border-none shadow-none focus-visible:ring-0 px-0"
+              className="text-base font-semibold text-foreground border-none shadow-none focus-visible:ring-0 px-0 h-auto text-center"
             />
           </div>
 
-          {/* Status */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : hasChanges ? (
-              <>
-                <Save className="h-4 w-4" />
-                Unsaved
-              </>
-            ) : (
-              'Saved'
-            )}
-          </div>
-
-          {/* Actions */}
+          {/* Right: Status + Actions */}
           <div className="flex items-center gap-3">
-            {/* Presence Indicator */}
-            <PresenceIndicator />
+            {/* Status */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Saving...
+                </>
+              ) : hasChanges ? (
+                <>
+                  <Save className="h-3.5 w-3.5" />
+                  Unsaved
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => {
+                      if (editor) {
+                        const content = editor.getJSON();
+                        saveNote(title, content);
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                </>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  Saved
+                </span>
+              )}
+            </div>
 
-            {/* Collaborator Avatars */}
-            <AvatarStack maxVisible={3} />
+            <Separator orientation="vertical" className="h-6" />
 
-            {/* Share Button */}
-            <ShareModal noteId={noteId} noteTitle={title || 'Untitled'} />
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-
-            {/* User Avatar */}
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
-              <AvatarFallback>{getUserInitials()}</AvatarFallback>
-            </Avatar>
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <PresenceIndicator />
+              <AvatarStack maxVisible={3} />
+              <ShareModal noteId={noteId} noteTitle={title || 'Untitled'} />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => router.push("/settings")}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </header>
 

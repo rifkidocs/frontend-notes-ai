@@ -8,31 +8,31 @@ import { cn } from '@/lib/utils';
 export const cardVariants = {
   hidden: {
     opacity: 0,
-    y: 20,
-    scale: 0.95,
+    scale: 0.99,
   },
   visible: {
     opacity: 1,
-    y: 0,
     scale: 1,
     transition: {
-      type: 'spring' as const,
-      stiffness: 300,
-      damping: 24,
-      bounce: 0.1,
+      type: 'tween' as const,
+      duration: 0.3,
+      ease: 'easeOut',
     },
   },
   hover: {
-    y: -4,
-    scale: 1.02,
+    scale: 1.01,
     transition: {
-      type: 'spring' as const,
-      stiffness: 400,
-      damping: 20,
+      type: 'tween' as const,
+      duration: 0.2,
+      ease: 'easeOut',
     },
   },
   tap: {
     scale: 0.98,
+    transition: {
+      type: 'tween' as const,
+      duration: 0.1,
+    },
   },
 };
 
@@ -42,7 +42,7 @@ export const staggerContainerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08,
+      staggerChildren: 0.04,
       delayChildren: 0.1,
     },
   },
@@ -54,6 +54,7 @@ interface MotionCardProps extends HTMLMotionProps<'div'> {
   variant?: 'default' | 'glass' | 'gradient' | 'elevated';
   delay?: number;
   index?: number;
+  skipAnimation?: boolean;
 }
 
 export function MotionCard({
@@ -62,10 +63,11 @@ export function MotionCard({
   variant = 'default',
   delay = 0,
   index,
+  skipAnimation = false,
   ...props
 }: MotionCardProps) {
-  // Calculate delay based on index if provided
-  const animationDelay = index !== undefined ? index * 0.05 : delay;
+  // Calculate delay based on index if provided (smoother stagger)
+  const animationDelay = index !== undefined ? index * 0.03 : delay;
 
   const variantStyles = {
     default: 'bg-card text-card-foreground border border-border shadow-sm',
@@ -77,12 +79,12 @@ export function MotionCard({
 
   return (
     <motion.div
-      variants={cardVariants}
-      initial="hidden"
-      animate="visible"
+      variants={skipAnimation ? undefined : cardVariants}
+      initial={skipAnimation ? undefined : "hidden"}
+      animate={skipAnimation ? undefined : "visible"}
       whileHover="hover"
       whileTap="tap"
-      transition={{ delay: animationDelay }}
+      transition={skipAnimation ? undefined : { delay: animationDelay }}
       className={cn('rounded-xl', variantStyles[variant], className)}
       {...props}
     >
