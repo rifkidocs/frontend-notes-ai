@@ -46,6 +46,23 @@ export function AppLayout({
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (!authApi.isAuthenticated()) {
@@ -77,12 +94,22 @@ export function AppLayout({
   };
 
   return (
-    <div className='flex h-screen bg-background'>
+    <div className='flex h-screen bg-background relative'>
+      {/* Mobile Overlay */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
-        className={`glass-effect flex flex-col border-r border-border transition-all duration-300 ${
-          sidebarOpen ? "w-64" : "w-0"
-        } ${!sidebarOpen ? "opacity-0" : "opacity-100"}`}>
+        className={`glass-effect flex flex-col border-r border-border transition-all duration-300 
+          ${isMobile ? 'fixed inset-y-0 left-0 z-50 w-64 shadow-xl' : 'relative'}
+          ${sidebarOpen ? (isMobile ? "translate-x-0" : "w-64") : (isMobile ? "-translate-x-full" : "w-0")} 
+          ${!sidebarOpen && !isMobile ? "opacity-0 overflow-hidden" : "opacity-100"}
+        `}>
         {/* Logo */}
         <div className='p-4 border-b border-border h-16 flex items-center'>
           <div className='flex items-center gap-3'>

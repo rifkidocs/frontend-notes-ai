@@ -135,7 +135,7 @@ export default function LoginPage() {
         {/* Login Card */}
         <motion.div
           variants={itemVariants}
-          className="glass-card rounded-2xl p-8 shadow-2xl"
+          className="glass-card rounded-2xl p-6 md:p-8 shadow-2xl"
         >
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-2">Sign in to continue</h2>

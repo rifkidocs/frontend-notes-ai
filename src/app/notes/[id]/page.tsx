@@ -36,6 +36,23 @@ export default function NoteEditorPage() {
   const noteId = params.id as string;
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const { user } = useAuthStore();
   const { currentNote, isLoading, fetchNote, updateNote, createNote, clearCurrentNote } = useNotesStore();
@@ -177,16 +194,29 @@ export default function NoteEditorPage() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background relative">
+      {/* Mobile Overlay */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <NotesSidebar noteId={noteId} isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <NotesSidebar 
+        noteId={noteId} 
+        isOpen={sidebarOpen} 
+        onToggle={() => setSidebarOpen(!sidebarOpen)} 
+        isMobile={isMobile}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-border flex items-center px-6 gap-4 backdrop-blur-sm bg-background/50">
+        <header className="h-16 border-b border-border flex items-center px-4 md:px-6 gap-2 md:gap-4 backdrop-blur-sm bg-background/50">
           {/* Left: Menu Toggle + Back Button */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             <Button
               variant="ghost"
               size="icon"
@@ -195,7 +225,7 @@ export default function NoteEditorPage() {
             >
               {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
-            <Separator orientation="vertical" className="h-6" />
+            <Separator orientation="vertical" className="h-6 hidden md:block" />
             <Button
               variant="ghost"
               size="icon"
@@ -220,22 +250,22 @@ export default function NoteEditorPage() {
           </div>
 
           {/* Right: Status + Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             {/* Status */}
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {isSaving ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Saving...
+                  <span className="hidden md:inline">Saving...</span>
                 </>
               ) : hasChanges ? (
                 <>
                   <Save className="h-3.5 w-3.5" />
-                  Unsaved
+                  <span className="hidden md:inline">Unsaved</span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2 text-xs"
+                    className="h-7 px-2 text-xs hidden md:flex"
                     onClick={() => {
                       if (content) {
                         saveNote(title, content);
@@ -248,17 +278,19 @@ export default function NoteEditorPage() {
               ) : (
                 <span className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-green-500" />
-                  Saved
+                  <span className="hidden md:inline">Saved</span>
                 </span>
               )}
             </div>
 
-            <Separator orientation="vertical" className="h-6" />
+            <Separator orientation="vertical" className="h-6 hidden md:block" />
 
             {/* Actions */}
-            <div className="flex items-center gap-2">
-              <PresenceIndicator />
-              <AvatarStack maxVisible={3} />
+            <div className="flex items-center gap-1 md:gap-2">
+              <div className="hidden md:flex items-center gap-2">
+                <PresenceIndicator />
+                <AvatarStack maxVisible={3} />
+              </div>
               <ShareModal noteId={noteId} noteTitle={title || 'Untitled'} />
               <Button
                 variant="ghost"

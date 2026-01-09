@@ -203,13 +203,13 @@ export function Editor({
   return (
     <div className="flex flex-col h-full bg-background border w-full">
       {editable && (
-        <div className="flex items-center gap-1 p-2 border-b bg-muted/30 flex-wrap sticky top-0 z-10 w-full">
+        <div className="flex items-center gap-1 p-2 border-b bg-muted/30 sticky top-0 z-10 w-full overflow-x-auto no-scrollbar">
            <Button
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleBold().run()}
             disabled={!editor.can().chain().focus().toggleBold().run()}
-            className={editor.isActive('bold') ? 'bg-muted' : ''}
+            className={`flex-shrink-0 ${editor.isActive('bold') ? 'bg-muted' : ''}`}
             title="Bold"
           >
             <Bold className="h-4 w-4" />
@@ -219,7 +219,7 @@ export function Editor({
             size="sm"
             onClick={() => editor.chain().focus().toggleItalic().run()}
             disabled={!editor.can().chain().focus().toggleItalic().run()}
-            className={editor.isActive('italic') ? 'bg-muted' : ''}
+            className={`flex-shrink-0 ${editor.isActive('italic') ? 'bg-muted' : ''}`}
             title="Italic"
           >
             <Italic className="h-4 w-4" />
@@ -229,19 +229,19 @@ export function Editor({
             size="sm"
             onClick={() => editor.chain().focus().toggleCode().run()}
             disabled={!editor.can().chain().focus().toggleCode().run()}
-            className={editor.isActive('code') ? 'bg-muted' : ''}
+            className={`flex-shrink-0 ${editor.isActive('code') ? 'bg-muted' : ''}`}
             title="Code"
           >
             <Code className="h-4 w-4" />
           </Button>
 
-          <Separator orientation="vertical" className="h-6 mx-1" />
+          <Separator orientation="vertical" className="h-6 mx-1 flex-shrink-0" />
 
           <Button
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            className={editor.isActive('heading', { level: 1 }) ? 'bg-muted' : ''}
+            className={`flex-shrink-0 ${editor.isActive('heading', { level: 1 }) ? 'bg-muted' : ''}`}
             title="Heading 1"
           >
             <Heading1 className="h-4 w-4" />
@@ -250,7 +250,7 @@ export function Editor({
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            className={editor.isActive('heading', { level: 2 }) ? 'bg-muted' : ''}
+            className={`flex-shrink-0 ${editor.isActive('heading', { level: 2 }) ? 'bg-muted' : ''}`}
             title="Heading 2"
           >
             <Heading2 className="h-4 w-4" />
@@ -259,19 +259,19 @@ export function Editor({
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            className={editor.isActive('heading', { level: 3 }) ? 'bg-muted' : ''}
+            className={`flex-shrink-0 ${editor.isActive('heading', { level: 3 }) ? 'bg-muted' : ''}`}
             title="Heading 3"
           >
             <Heading3 className="h-4 w-4" />
           </Button>
 
-          <Separator orientation="vertical" className="h-6 mx-1" />
+          <Separator orientation="vertical" className="h-6 mx-1 flex-shrink-0" />
 
           <Button
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={editor.isActive('bulletList') ? 'bg-muted' : ''}
+            className={`flex-shrink-0 ${editor.isActive('bulletList') ? 'bg-muted' : ''}`}
             title="Bullet List"
           >
             <List className="h-4 w-4" />
@@ -280,7 +280,7 @@ export function Editor({
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={editor.isActive('orderedList') ? 'bg-muted' : ''}
+            className={`flex-shrink-0 ${editor.isActive('orderedList') ? 'bg-muted' : ''}`}
             title="Ordered List"
           >
             <ListOrdered className="h-4 w-4" />
@@ -289,13 +289,13 @@ export function Editor({
             variant="ghost"
             size="sm"
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            className={editor.isActive('blockquote') ? 'bg-muted' : ''}
+            className={`flex-shrink-0 ${editor.isActive('blockquote') ? 'bg-muted' : ''}`}
             title="Quote"
           >
             <Quote className="h-4 w-4" />
           </Button>
 
-          <div className="flex-1" />
+          <div className="flex-1 min-w-4" />
 
           <Button
             variant="ghost"
@@ -303,6 +303,7 @@ export function Editor({
             onClick={() => editor.chain().focus().undo().run()}
             disabled={!editor.can().chain().focus().undo().run()}
             title="Undo"
+            className="flex-shrink-0"
           >
             <Undo className="h-4 w-4" />
           </Button>
@@ -312,20 +313,21 @@ export function Editor({
             onClick={() => editor.chain().focus().redo().run()}
             disabled={!editor.can().chain().focus().redo().run()}
             title="Redo"
+            className="flex-shrink-0"
           >
             <Redo className="h-4 w-4" />
           </Button>
 
-          <Separator orientation="vertical" className="h-6 mx-1" />
+          <Separator orientation="vertical" className="h-6 mx-1 flex-shrink-0" />
 
           <Button 
             variant="outline" 
             size="sm" 
-            className="gap-2 text-primary border-primary/20 hover:bg-primary/5"
+            className="gap-2 text-primary border-primary/20 hover:bg-primary/5 flex-shrink-0"
             onClick={() => setShowAIDialog(true)}
           >
             <Sparkles className="h-4 w-4" />
-            AI Actions
+            <span className="hidden sm:inline">AI Actions</span>
           </Button>
         </div>
       )}

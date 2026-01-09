@@ -41,9 +41,10 @@ interface NotesSidebarProps {
   noteId?: string;
   isOpen?: boolean;
   onToggle?: () => void;
+  isMobile?: boolean;
 }
 
-export function NotesSidebar({ noteId, isOpen = true, onToggle }: NotesSidebarProps) {
+export function NotesSidebar({ noteId, isOpen = true, onToggle, isMobile = false }: NotesSidebarProps) {
   const pathname = usePathname();
   const { user, clearAuth } = useAuthStore();
 
@@ -67,9 +68,10 @@ export function NotesSidebar({ noteId, isOpen = true, onToggle }: NotesSidebarPr
   return (
     <>
       <aside
-        className={`glass-effect flex flex-col border-r border-border transition-all duration-300 ease-in-out overflow-hidden ${
-          isOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-r-0"
-        }`}>
+        className={`glass-effect flex flex-col border-r border-border transition-all duration-300 ease-in-out overflow-hidden
+          ${isMobile ? 'fixed inset-y-0 left-0 z-50 w-64 shadow-xl' : 'relative'}
+          ${isOpen ? (isMobile ? "translate-x-0" : "w-64 opacity-100") : (isMobile ? "-translate-x-full" : "w-0 opacity-0 border-r-0")}
+        `}>
       {/* Logo */}
       <div className='p-4 border-b border-border h-16 flex items-center'>
         <div className='flex items-center gap-3'>
