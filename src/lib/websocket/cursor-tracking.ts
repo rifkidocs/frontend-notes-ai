@@ -67,10 +67,12 @@ export class CursorTracker {
   }
 
   private sendCursorUpdate(position: { from: number; to: number }) {
-    socketManager.emit('cursor:update', {
-      noteId: this.noteId,
-      position,
-    });
+    if (socketManager.isConnected()) {
+        socketManager.emit('cursor:update', {
+          noteId: this.noteId,
+          position,
+        });
+    }
   }
 }
 

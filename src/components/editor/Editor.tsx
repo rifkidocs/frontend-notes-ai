@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { NoteContent } from '@/lib/types';
 import { getExtensions } from '@/lib/tiptap/extensions';
@@ -31,6 +31,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useDocumentSync } from '@/lib/websocket/document-sync';
+import { useCursorTracking } from '@/lib/websocket/cursor-tracking';
+import { LiveCursors } from '@/components/collaboration/LiveCursors';
 
 interface EditorProps {
   content: NoteContent;
@@ -38,6 +41,7 @@ interface EditorProps {
   placeholder?: string;
   onChange?: (content: NoteContent) => void;
   onReady?: () => void;
+  noteId?: string;
 }
 
 export function Editor({
@@ -46,6 +50,7 @@ export function Editor({
   placeholder = "Start writing...",
   onChange,
   onReady,
+  noteId,
 }: EditorProps) {
   const [showAIDialog, setShowAIDialog] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -54,6 +59,7 @@ export function Editor({
     extensions: getExtensions({ placeholder, editable }),
     content: apiToTipTap(content),
     editable,
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       if (onChange) {
         const json = editor.getJSON();
@@ -71,6 +77,35 @@ export function Editor({
     },
   });
 
+  // Collaboration hooks integration
+  const isCollabEnabled = !!(noteId && noteId !== 'new');
+
+  // Memoize the sync instances to avoid recreation on every render
+  const documentSync = useMemo(() => {
+    if (isCollabEnabled && editor) {
+      return useDocumentSync(noteId!, editor);
+    }
+    return null;
+  }, [isCollabEnabled, noteId, editor]);
+
+  const cursorTracker = useMemo(() => {
+    if (isCollabEnabled && editor) {
+      return useCursorTracking(noteId!, editor);
+    }
+    return null;
+  }, [isCollabEnabled, noteId, editor]);
+
+  // Manage lifecycle of collaboration
+  useEffect(() => {
+    if (documentSync) documentSync.join();
+    if (cursorTracker) cursorTracker.start();
+
+    return () => {
+      documentSync?.leave();
+      cursorTracker?.stop();
+    };
+  }, [documentSync, cursorTracker]);
+
   // Handle external updates
   useEffect(() => {
     if (!editor) return;
@@ -83,14 +118,9 @@ export function Editor({
     const newContent = apiToTipTap(content);
     
     // Compare current content to avoid unnecessary updates
-    // JSON.stringify is a quick way to check deep equality for this purpose
     const currentContent = editor.getJSON();
     
-    // We only update if there's a meaningful difference.
-    // Note: This is a simplified check. Ideally, we'd use Yjs for real sync.
     if (JSON.stringify(newContent) !== JSON.stringify(currentContent)) {
-       // Save cursor position if possible? No, if we replace content, cursor resets anyway.
-       // But we already checked !editor.isFocused, so cursor position matters less.
        editor.commands.setContent(newContent);
     }
   }, [content, editor]);
@@ -283,7 +313,10 @@ export function Editor({
         </div>
       )}
 
-      <EditorContent editor={editor} className="flex-1 w-full" />
+      <div className="relative flex-1 w-full overflow-hidden">
+        {isCollabEnabled && <LiveCursors editor={editor} />}
+        <EditorContent editor={editor} className="flex-1 w-full h-full" />
+      </div>
 
       <Dialog open={showAIDialog} onOpenChange={setShowAIDialog}>
         <DialogContent>

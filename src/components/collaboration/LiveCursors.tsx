@@ -1,28 +1,35 @@
 'use client';
 
 import { useCollaborationStore } from '@/lib/stores/collaboration-store';
+import { Editor } from '@tiptap/react';
 import { useEffect, useRef } from 'react';
 
-export function LiveCursors() {
+interface LiveCursorsProps {
+  editor: Editor | null;
+}
+
+export function LiveCursors({ editor }: LiveCursorsProps) {
   const { cursors } = useCollaborationStore();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Get cursor positions for rendering
   const cursorEntries = Array.from(cursors.entries());
 
-  if (cursorEntries.length === 0) {
+  if (cursorEntries.length === 0 || !editor) {
     return null;
   }
 
   return (
-    <div ref={containerRef} className="pointer-events-none fixed inset-0 z-30">
+    <div ref={containerRef} className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
       {cursorEntries.map(([userId, cursorInfo]) => (
         <RemoteCursor
           key={userId}
+          editor={editor}
           userId={userId}
           position={cursorInfo.position}
           userName={cursorInfo.user.name}
           color={cursorInfo.color}
+          containerRef={containerRef}
         />
       ))}
     </div>
@@ -30,69 +37,72 @@ export function LiveCursors() {
 }
 
 interface RemoteCursorProps {
+  editor: Editor;
   userId: string;
   position: { from: number; to: number };
   userName: string;
   color: string;
+  containerRef: React.RefObject<HTMLDivElement>;
 }
 
-function RemoteCursor({ position, userName, color }: RemoteCursorProps) {
+function RemoteCursor({ editor, position, userName, color, containerRef }: RemoteCursorProps) {
   const cursorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Calculate position based on TipTap coordinates
-    // This is a simplified implementation - in production you'd use TipTap's view.coordsAtPos()
     updateCursorPosition();
-  }, [position]);
+  }, [position, editor]); // Update when position or editor changes
 
   const updateCursorPosition = () => {
-    if (!cursorRef.current) return;
+    if (!cursorRef.current || !editor || !editor.view || !containerRef.current) return;
 
-    // Get the selection coordinates
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-
-    // Try to find the text node at the position
-    // This is a placeholder - you'd need to implement proper position calculation
-    // using TipTap's view.coordsAtPos() method
-    const range = selection.getRangeAt(0);
-    const rects = range.getClientRects();
-
-    if (rects.length > 0) {
-      const rect = rects[0];
-      cursorRef.current.style.left = `${rect.left + window.scrollX}px`;
-      cursorRef.current.style.top = `${rect.top + window.scrollY}px`;
+    try {
+        // use view.coordsAtPos to get coordinates
+        // We use 'from' position for the cursor
+        const { from } = position;
+        
+        // Ensure position is within bounds
+        const safePos = Math.min(Math.max(0, from), editor.state.doc.content.size);
+        
+        const coords = editor.view.coordsAtPos(safePos);
+        
+        // Get container rect to calculate relative position
+        const containerRect = containerRef.current.getBoundingClientRect();
+        
+        // Calculate relative position to the container
+        const top = coords.top - containerRect.top;
+        const left = coords.left - containerRect.left;
+        
+        cursorRef.current.style.transform = `translate(${left}px, ${top}px)`;
+        
+    } catch (e) {
+        console.warn("Failed to update cursor position", e);
     }
   };
 
   return (
     <div
       ref={cursorRef}
-      className="absolute transition-all duration-100 ease-out"
+      className="absolute transition-transform duration-100 ease-out will-change-transform z-20 pointer-events-none"
       style={{
-        transform: 'translate(-2px, 0)',
+        left: 0,
+        top: 0,
       }}
     >
       {/* Cursor */}
       <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
+        width="2"
+        height="20"
+        viewBox="0 0 2 20"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        style={{ filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.3))' }}
+        className="absolute -top-1"
       >
-        <path
-          d="M0.5 0.5L12.5 8L6.5 8L9.5 15.5L6.5 15.5L3.5 8L0.5 8L0.5 0.5Z"
-          fill={color}
-          stroke="white"
-          strokeWidth="1"
-        />
+        <rect width="2" height="20" fill={color} />
       </svg>
-
-      {/* Label */}
-      <div
-        className="absolute left-4 top-0 px-2 py-0.5 rounded text-xs font-medium text-white whitespace-nowrap"
+      
+      {/* Top marker (caret) */}
+      <div 
+        className="absolute -top-6 -left-2 px-2 py-0.5 rounded text-xs font-medium text-white whitespace-nowrap z-40"
         style={{
           backgroundColor: color,
         }}

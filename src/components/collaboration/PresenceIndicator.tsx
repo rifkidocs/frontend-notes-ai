@@ -33,9 +33,9 @@ export function PresenceIndicator({ compact = false }: PresenceIndicatorProps) {
     <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-full">
       <Users className="h-3.5 w-3.5 text-muted-foreground" />
       <div className="flex items-center gap-1">
-        {otherUsers.slice(0, 3).map((collabUser, index) => (
+        {otherUsers.slice(0, 3).map((collabUser) => (
           <Avatar
-            key={`${collabUser.userId}-${index}`}
+            key={collabUser.socketId}
             className="h-5 w-5 border border-background"
             title={collabUser.userName}
           >

@@ -42,19 +42,11 @@ export default function NoteEditorPage() {
   useEffect(() => {
     if (noteId === 'new') return;
 
-    // Connect to collaboration
+    // Connect to collaboration store (for presence/avatars outside editor)
     connectCollab(noteId);
-    // const documentSync = useDocumentSync(noteId, editor);
-    // const cursorTracker = useCursorTracking(noteId, editor);
-
-    // Start tracking
-    // documentSync.join();
-    // cursorTracker.start();
 
     // Cleanup on unmount
     return () => {
-      // documentSync.leave();
-      // cursorTracker.stop();
       disconnectCollab();
     };
   }, [noteId, connectCollab, disconnectCollab]);
@@ -276,6 +268,7 @@ export default function NoteEditorPage() {
             key={noteId}
             content={content || initialContent}
             onChange={handleContentChange}
+            noteId={noteId}
           />
         </div>
       </div>

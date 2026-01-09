@@ -11,7 +11,6 @@ export function apiToTipTap(apiContent: NoteContent | any): any {
       content: [
         {
           type: 'paragraph',
-          content: [{ type: 'text', text: '' }],
         },
       ],
     };
@@ -21,7 +20,7 @@ export function apiToTipTap(apiContent: NoteContent | any): any {
   if (apiContent.type === 'doc' && apiContent.children) {
     return {
       type: 'doc',
-      content: apiContent.children.map(apiToTipTap),
+      content: apiContent.children.map(apiToTipTap).filter(Boolean),
     };
   }
 
@@ -30,15 +29,24 @@ export function apiToTipTap(apiContent: NoteContent | any): any {
     return {
       type: apiContent.type || 'paragraph',
       attrs: apiContent.attrs || {},
-      content: apiContent.children.map(apiToTipTap),
+      content: apiContent.children.map(apiToTipTap).filter(Boolean),
     };
   }
 
   // Handle leaf nodes (text nodes)
   if (apiContent.type === 'text') {
+    // Tiptap doesn't like empty text nodes.
+    // If text is empty, we should generally not create a text node at all,
+    // unless it's being used in a specific way that I'm missing.
+    // However, usually an empty paragraph is just { type: 'paragraph' } without content.
+    
+    if (!apiContent.text) {
+        return null; // Signal to filter this out
+    }
+
     const textNode: any = {
       type: 'text',
-      text: apiContent.text || '',
+      text: apiContent.text,
     };
 
     // Add marks if present (bold, italic, etc.)
