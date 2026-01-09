@@ -157,174 +157,167 @@ export function ShareModal({ noteId, noteTitle, trigger }: ShareModalProps) {
     </Button>
   );
 
-  if (loading) {
-    return (
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
-        <DialogContent className="sm:max-w-md">
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Share "{noteTitle}"</DialogTitle>
+          <DialogTitle>Share &quot;{noteTitle}&quot;</DialogTitle>
           <DialogDescription>
             Manage who can access and edit this note
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Public Access */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor="public-toggle" className="font-normal">
-                  Public access
-                </Label>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-6 py-4">
+            {/* Public Access */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="public-toggle" className="font-normal">
+                    Public access
+                  </Label>
+                </div>
+                <Switch
+                  id="public-toggle"
+                  checked={settings?.isPublic || false}
+                  onCheckedChange={handleTogglePublic}
+                  disabled={saving}
+                />
               </div>
-              <Switch
-                id="public-toggle"
-                checked={settings?.isPublic || false}
-                onCheckedChange={handleTogglePublic}
-                disabled={saving}
-              />
+
+              {settings?.isPublic && (
+                <div className="ml-6 space-y-2">
+                  <Select
+                    value={settings.publicAccess || 'VIEW'}
+                    onValueChange={(v) => handleUpdatePublicAccess(v as 'VIEW' | 'EDIT')}
+                    disabled={saving}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="VIEW">Anyone with link can view</SelectItem>
+                      <SelectItem value="EDIT">Anyone with link can edit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-8"
+                    onClick={handleCopyLink}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 mr-2" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5 mr-2" />
+                        Copy link
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
 
-            {settings?.isPublic && (
-              <div className="ml-6 space-y-2">
+            {/* Invite by Email */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Invite people</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="Enter email address"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleInviteUser()}
+                  disabled={saving}
+                  className="flex-1"
+                />
                 <Select
-                  value={settings.publicAccess || 'VIEW'}
-                  onValueChange={(v) => handleUpdatePublicAccess(v as 'VIEW' | 'EDIT')}
+                  value={accessLevel}
+                  onValueChange={(v) => setAccessLevel(v as 'VIEW' | 'EDIT')}
                   disabled={saving}
                 >
-                  <SelectTrigger className="h-8">
+                  <SelectTrigger className="w-24 h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="VIEW">Anyone with link can view</SelectItem>
-                    <SelectItem value="EDIT">Anyone with link can edit</SelectItem>
+                    <SelectItem value="VIEW">Can view</SelectItem>
+                    <SelectItem value="EDIT">Can edit</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button
-                  variant="outline"
                   size="sm"
-                  className="w-full h-8"
-                  onClick={handleCopyLink}
+                  onClick={handleInviteUser}
+                  disabled={saving || !emailInput.trim()}
                 >
-                  {copied ? (
-                    <>
-                      <Check className="h-3.5 w-3.5 mr-2" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3.5 w-3.5 mr-2" />
-                      Copy link
-                    </>
-                  )}
+                  <Mail className="h-4 w-4" />
                 </Button>
+              </div>
+            </div>
+
+            {/* Shared Users */}
+            {settings && settings.sharedAccess.length > 0 && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">
+                  People with access ({settings.sharedAccess.length})
+                </Label>
+                <div className="space-y-2">
+                  {settings.sharedAccess.map((access) => (
+                    <div
+                      key={access.id}
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors"
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="text-xs">
+                          {getUserInitials(access.user?.name || null, access.inviteEmail)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {access.user?.name || access.inviteEmail || 'Unknown'}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {access.user?.email || access.inviteEmail}
+                        </p>
+                      </div>
+                      <Select
+                        value={access.accessLevel}
+                        onValueChange={(v) => handleUpdateAccess(access.id, v as 'VIEW' | 'EDIT')}
+                        disabled={saving}
+                      >
+                        <SelectTrigger className="w-24 h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="VIEW">Can view</SelectItem>
+                          <SelectItem value="EDIT">Can edit</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => handleRemoveUser(access.id)}
+                        disabled={saving}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-
-          {/* Invite by Email */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Invite people</Label>
-            <div className="flex gap-2">
-              <Input
-                type="email"
-                placeholder="Enter email address"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleInviteUser()}
-                disabled={saving}
-                className="flex-1"
-              />
-              <Select
-                value={accessLevel}
-                onValueChange={(v) => setAccessLevel(v as 'VIEW' | 'EDIT')}
-                disabled={saving}
-              >
-                <SelectTrigger className="w-24 h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="VIEW">Can view</SelectItem>
-                  <SelectItem value="EDIT">Can edit</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                size="sm"
-                onClick={handleInviteUser}
-                disabled={saving || !emailInput.trim()}
-              >
-                <Mail className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Shared Users */}
-          {settings && settings.sharedAccess.length > 0 && (
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">
-                People with access ({settings.sharedAccess.length})
-              </Label>
-              <div className="space-y-2">
-                {settings.sharedAccess.map((access) => (
-                  <div
-                    key={access.id}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors"
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="text-xs">
-                        {getUserInitials(access.user?.name || null, access.inviteEmail)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {access.user?.name || access.inviteEmail || 'Unknown'}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {access.user?.email || access.inviteEmail}
-                      </p>
-                    </div>
-                    <Select
-                      value={access.accessLevel}
-                      onValueChange={(v) => handleUpdateAccess(access.id, v as 'VIEW' | 'EDIT')}
-                      disabled={saving}
-                    >
-                      <SelectTrigger className="w-24 h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="VIEW">Can view</SelectItem>
-                        <SelectItem value="EDIT">Can edit</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => handleRemoveUser(access.id)}
-                      disabled={saving}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        )}
 
         {saving && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg">

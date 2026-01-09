@@ -66,6 +66,9 @@ export function getExtensions(options: {
   return [
     // Base extensions
     StarterKit.configure({
+      history: {
+        depth: 1000,
+      },
       heading: {
         levels: [1, 2, 3, 4, 5, 6],
       },

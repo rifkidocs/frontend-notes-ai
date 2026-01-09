@@ -107,7 +107,7 @@ export default function NoteEditorPage() {
           });
           markSaved();
           setHasChanges(false);
-          toast.success('Note saved');
+          // toast.success('Note saved'); // Removed to avoid spam while typing
         } catch (error) {
           setSaveError(error instanceof Error ? error.message : 'Failed to save note');
           toast.error('Failed to save note');

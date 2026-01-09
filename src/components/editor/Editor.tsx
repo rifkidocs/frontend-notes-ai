@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -153,7 +154,7 @@ export function Editor({
   }
 
   return (
-    <div className="flex flex-col h-full bg-background rounded-md border w-full">
+    <div className="flex flex-col h-full bg-background border w-full">
       {editable && (
         <div className="flex items-center gap-1 p-2 border-b bg-muted/30 flex-wrap sticky top-0 z-10 w-full">
            <Button
@@ -288,6 +289,9 @@ export function Editor({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>AI Assistant</DialogTitle>
+            <DialogDescription>
+              Choose an AI action to perform on your note content.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
