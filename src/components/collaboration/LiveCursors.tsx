@@ -51,6 +51,17 @@ function RemoteCursor({ editor, position, userName, color, containerRef }: Remot
 
   useEffect(() => {
     updateCursorPosition();
+    
+    // Also update when local editor content changes (layout shift)
+    const handleUpdate = () => {
+        requestAnimationFrame(updateCursorPosition);
+    };
+    
+    editor.on('transaction', handleUpdate);
+    
+    return () => {
+        editor.off('transaction', handleUpdate);
+    };
   }, [position, editor]); // Update when position or editor changes
 
   const updateCursorPosition = () => {
