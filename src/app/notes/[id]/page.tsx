@@ -7,6 +7,7 @@ import { AIContextMenu } from '@/components/editor/AIContextMenu';
 import { AvatarStack } from '@/components/collaboration/AvatarStack';
 import { PresenceIndicator } from '@/components/collaboration/PresenceIndicator';
 import { ShareModal } from '@/components/sharing/ShareModal';
+import { NotesSidebar } from '@/components/notes/NotesSidebar';
 import { useNotesStore } from '@/lib/stores/notes-store';
 import { useEditorStore } from '@/lib/stores/editor-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -164,77 +165,83 @@ export default function NoteEditorPage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <header className="flex items-center gap-4 px-6 py-4 border-b bg-background">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => router.back()}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+    <div className="flex h-screen bg-background">
+      {/* Sidebar */}
+      <NotesSidebar noteId={noteId} />
 
-        {/* Title Input */}
-        <div className="flex-1">
-          <Input
-            type="text"
-            value={title}
-            onChange={(e) => handleTitleChange(e.target.value)}
-            onBlur={handleTitleBlur}
-            placeholder="Untitled"
-            className="text-xl font-semibold border-none shadow-none focus-visible:ring-0 px-0"
-          />
-        </div>
-
-        {/* Status */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : hasChanges ? (
-            <>
-              <Save className="h-4 w-4" />
-              Unsaved
-            </>
-          ) : (
-            'Saved'
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-3">
-          {/* Presence Indicator */}
-          <PresenceIndicator />
-
-          {/* Collaborator Avatars */}
-          <AvatarStack maxVisible={3} />
-
-          {/* Share Button */}
-          <ShareModal noteId={noteId} noteTitle={title || 'Untitled'} />
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <MoreVertical className="h-4 w-4" />
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="flex items-center gap-4 px-6 py-4 border-b bg-background">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="h-4 w-4" />
           </Button>
 
-          {/* User Avatar */}
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
-            <AvatarFallback>{getUserInitials()}</AvatarFallback>
-          </Avatar>
-        </div>
-      </header>
+          {/* Title Input */}
+          <div className="flex-1">
+            <Input
+              type="text"
+              value={title}
+              onChange={(e) => handleTitleChange(e.target.value)}
+              onBlur={handleTitleBlur}
+              placeholder="Untitled"
+              className="text-xl font-semibold border-none shadow-none focus-visible:ring-0 px-0"
+            />
+          </div>
 
-      {/* Editor */}
-      <div className="flex-1 overflow-hidden">
-        <Editor
-          content={initialContent}
-          onChange={handleContentChange}
-          onEditorReady={(editorInstance) => setEditor(editorInstance)}
-        />
-        <AIContextMenu editor={editor} />
+          {/* Status */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : hasChanges ? (
+              <>
+                <Save className="h-4 w-4" />
+                Unsaved
+              </>
+            ) : (
+              'Saved'
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            {/* Presence Indicator */}
+            <PresenceIndicator />
+
+            {/* Collaborator Avatars */}
+            <AvatarStack maxVisible={3} />
+
+            {/* Share Button */}
+            <ShareModal noteId={noteId} noteTitle={title || 'Untitled'} />
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+
+            {/* User Avatar */}
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
+              <AvatarFallback>{getUserInitials()}</AvatarFallback>
+            </Avatar>
+          </div>
+        </header>
+
+        {/* Editor */}
+        <div className="flex-1 overflow-hidden">
+          <Editor
+            content={initialContent}
+            onChange={handleContentChange}
+            onEditorReady={(editorInstance) => setEditor(editorInstance)}
+          />
+          <AIContextMenu editor={editor} />
+        </div>
       </div>
     </div>
   );

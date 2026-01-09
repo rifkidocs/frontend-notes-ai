@@ -61,6 +61,7 @@ export function PresenceIndicator({ compact = false }: PresenceIndicatorProps) {
 }
 
 function getUserInitials(name: string): string {
+  if (!name) return 'U';
   return name
     .split(' ')
     .map((n) => n[0])
