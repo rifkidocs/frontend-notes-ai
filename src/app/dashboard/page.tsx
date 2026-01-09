@@ -364,9 +364,10 @@ function NoteCard({
       animate={undefined}
       variants={undefined}
       className="group relative p-5 cursor-pointer overflow-hidden"
+      onClick={onClick}
     >
       {/* Gradient overlay on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="absolute inset-0 bg-gradient-to-br from-muted/50 via-transparent to-muted/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
       {/* Header */}
       <div className="flex items-start justify-between mb-3 relative">
@@ -391,7 +392,7 @@ function NoteCard({
         <motion.div whileTap={{ scale: 0.95 }}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <button className="h-8 w-8 rounded-lg hover:bg-accent flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+              <button className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-all">
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>

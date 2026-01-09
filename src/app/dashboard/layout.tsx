@@ -119,7 +119,7 @@ export default function DashboardLayout({
                     className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all relative ${
                       isActive
                         ? "bg-primary/10 text-primary shadow-sm"
-                        : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}>
                     <div className='flex-shrink-0'>
                       <item.icon className='h-4 w-4' />
