@@ -182,7 +182,21 @@ export class DocumentSync {
                 const currentContent = this.editor?.getJSON();
                 if (JSON.stringify(currentContent) !== JSON.stringify(content)) {
                     console.log('[DocumentSync] Replacing content');
+                    
+                    // Save cursor position
+                    const { from, to } = this.editor?.state.selection || { from: 0, to: 0 };
+                    
                     this.editor?.commands.setContent(content);
+                    
+                    // Restore cursor position if we had focus or if we want to keep position
+                    // We need to ensure position is valid in new content
+                    const newSize = this.editor?.state.doc.content.size || 0;
+                    const safeFrom = Math.min(from, newSize);
+                    const safeTo = Math.min(to, newSize);
+                    
+                    if (this.editor?.isFocused) {
+                        this.editor?.commands.setTextSelection({ from: safeFrom, to: safeTo });
+                    }
                 } else {
                     console.log('[DocumentSync] Content identical, skipping replacement');
                 }

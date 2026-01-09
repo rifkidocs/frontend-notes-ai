@@ -67,10 +67,30 @@ function RemoteCursor({ editor, position, userName, color, containerRef }: Remot
         
         // Get container rect to calculate relative position
         const containerRect = containerRef.current.getBoundingClientRect();
+        const scrollTop = containerRef.current.scrollTop;
+        const scrollLeft = containerRef.current.scrollLeft;
         
         // Calculate relative position to the container
-        const top = coords.top - containerRect.top;
-        const left = coords.left - containerRect.left;
+        // We need to convert viewport coordinates (coords) to container-relative coordinates.
+        // Container-relative Y = (Viewport Y - Container Viewport Y) + Container Scroll Top
+        const top = coords.top - containerRect.top + scrollTop;
+        const left = coords.left - containerRect.left + scrollLeft;
+        
+        // console.log('[LiveCursors] Update:', { 
+        //     userId, 
+        //     safePos, 
+        //     coordsTop: coords.top, 
+        //     coordsLeft: coords.left,
+        //     containerTop: containerRect.top,
+        //     scrollTop,
+        //     calcTop: top,
+        //     calcLeft: left
+        // });
+
+        if (isNaN(top) || isNaN(left)) {
+            console.warn('[LiveCursors] Invalid coordinates:', { top, left });
+            return;
+        }
         
         cursorRef.current.style.transform = `translate(${left}px, ${top}px)`;
         

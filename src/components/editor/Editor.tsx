@@ -112,6 +112,7 @@ export function Editor({
 
     // If the editor is focused, we assume the user is typing and we shouldn't 
     // overwrite their work with external updates (unless we implement CRDT/Yjs properly later).
+    // However, if we DO update, we should try to preserve cursor.
     if (editor.isFocused) return;
 
     // Convert API content to Tiptap JSON
@@ -120,8 +121,22 @@ export function Editor({
     // Compare current content to avoid unnecessary updates
     const currentContent = editor.getJSON();
     
+    // We only update if there's a meaningful difference.
+    // Note: This is a simplified check. Ideally, we'd use Yjs for real sync.
     if (JSON.stringify(newContent) !== JSON.stringify(currentContent)) {
+       // Save cursor position if possible
+       const { from, to } = editor.state.selection;
+       
        editor.commands.setContent(newContent);
+       
+       // Restore cursor position
+       const newSize = editor.state.doc.content.size;
+       const safeFrom = Math.min(from, newSize);
+       const safeTo = Math.min(to, newSize);
+       
+       if (editor.isFocused) {
+           editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
+       }
     }
   }, [content, editor]);
 
@@ -313,7 +328,7 @@ export function Editor({
         </div>
       )}
 
-      <div className="relative flex-1 w-full overflow-hidden">
+      <div className="relative flex-1 w-full overflow-y-auto">
         {isCollabEnabled && <LiveCursors editor={editor} />}
         <EditorContent editor={editor} className="flex-1 w-full h-full" />
       </div>

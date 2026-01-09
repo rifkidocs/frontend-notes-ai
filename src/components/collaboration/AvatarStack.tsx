@@ -36,8 +36,8 @@ export function AvatarStack({ maxVisible = 3, showPresence = true }: AvatarStack
       )}
 
       {/* Other users */}
-      {visibleUsers.map((collabUser) => (
-        <div key={collabUser.socketId} className="relative" title={collabUser.userName}>
+      {visibleUsers.map((collabUser, index) => (
+        <div key={`${collabUser.socketId}-${index}`} className="relative" title={collabUser.userName}>
           <Avatar
             className="h-8 w-8 border-2 border-background"
             style={{ borderColor: collabUser.color }}
