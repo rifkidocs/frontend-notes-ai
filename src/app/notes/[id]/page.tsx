@@ -20,6 +20,13 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Save, Loader2, ArrowLeft, Settings, Menu, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { debounce } from '@/lib/utils/debounce';
 
@@ -28,6 +35,7 @@ export default function NoteEditorPage() {
   const params = useParams();
   const noteId = params.id as string;
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { user } = useAuthStore();
   const { currentNote, isLoading, fetchNote, updateNote, createNote, clearCurrentNote } = useNotesStore();
@@ -256,7 +264,7 @@ export default function NoteEditorPage() {
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9"
-                onClick={() => router.push("/settings")}
+                onClick={() => setSettingsOpen(true)}
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -274,6 +282,23 @@ export default function NoteEditorPage() {
           />
         </div>
       </div>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-primary" />
+              Settings
+            </DialogTitle>
+            <DialogDescription className="py-4">
+              We're working hard to bring you the best experience. The settings feature will be available soon!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button onClick={() => setSettingsOpen(false)}>Got it</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

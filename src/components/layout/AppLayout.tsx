@@ -22,6 +22,14 @@ import { useAuthStore } from "@/lib/stores/auth-store";
 import { authApi } from "@/lib/api/auth";
 import { toast } from "sonner";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 const navigation = [
   { name: "My Notes", href: "/dashboard", icon: Home },
   { name: "Shared with me", href: "/shared", icon: Users },
@@ -37,6 +45,7 @@ export function AppLayout({
   const { user, isAuthenticated, fetchUser, clearAuth } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!authApi.isAuthenticated()) {
@@ -193,7 +202,7 @@ export function AppLayout({
             variant='ghost'
             size='icon'
             className='h-9 w-9'
-            onClick={() => router.push("/settings")}>
+            onClick={() => setSettingsOpen(true)}>
             <Settings className='h-4 w-4' />
           </Button>
         </header>
@@ -203,6 +212,23 @@ export function AppLayout({
           {children}
         </main>
       </div>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-primary" />
+              Settings
+            </DialogTitle>
+            <DialogDescription className="py-4">
+              We're working hard to bring you the best experience. The settings feature will be available soon!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button onClick={() => setSettingsOpen(false)}>Got it</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
