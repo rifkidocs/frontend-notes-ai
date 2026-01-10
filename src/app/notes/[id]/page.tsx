@@ -54,8 +54,14 @@ export default function NoteEditorPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const { user } = useAuthStore();
+  const { user, initAuth } = useAuthStore();
   const { currentNote, isLoading, fetchNote, updateNote, createNote, clearCurrentNote } = useNotesStore();
+
+  // Initialize auth on mount
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
+
   const { isSaving, markSaved, setSaveError } = useEditorStore();
   const { connect: connectCollab, disconnect: disconnectCollab } = useCollaborationStore();
 

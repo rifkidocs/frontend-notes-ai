@@ -9,6 +9,7 @@ import {
   LogOut,
   Home,
   Users,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -47,7 +48,7 @@ interface NotesSidebarProps {
 
 export function NotesSidebar({ noteId, isOpen = true, onToggle, isMobile = false, readOnly = false }: NotesSidebarProps) {
   const pathname = usePathname();
-  const { user, clearAuth } = useAuthStore();
+  const { user, clearAuth, isLoading } = useAuthStore();
 
   const handleLogout = () => {
     authApi.clearTokens();
@@ -162,7 +163,13 @@ export function NotesSidebar({ noteId, isOpen = true, onToggle, isMobile = false
                 src={user?.avatar || undefined}
                 alt={user?.name || "User"}
               />
-              <AvatarFallback>{getUserInitials()}</AvatarFallback>
+              <AvatarFallback>
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  getUserInitials()
+                )}
+              </AvatarFallback>
             </Avatar>
           </div>
           <AnimatePresence mode='wait'>
@@ -173,12 +180,21 @@ export function NotesSidebar({ noteId, isOpen = true, onToggle, isMobile = false
                 animate='open'
                 exit='closed'
                 className='flex-1 min-w-0'>
-                <p className='text-sm font-medium truncate'>
-                  {user?.name || "User"}
-                </p>
-                <p className='text-xs text-muted-foreground truncate'>
-                  {user?.email}
-                </p>
+                {isLoading ? (
+                  <div className="space-y-1">
+                    <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+                    <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+                  </div>
+                ) : (
+                  <>
+                    <p className='text-sm font-medium truncate'>
+                      {user?.name || "User"}
+                    </p>
+                    <p className='text-xs text-muted-foreground truncate'>
+                      {user?.email}
+                    </p>
+                  </>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

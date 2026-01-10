@@ -13,6 +13,7 @@ import {
   Users,
   Menu,
   X,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,7 @@ export function AppLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, fetchUser, clearAuth } = useAuthStore();
+  const { user, isAuthenticated, fetchUser, clearAuth, isLoading } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -180,16 +181,31 @@ export function AppLayout({
                   src={user?.avatar || undefined}
                   alt={user?.name || "User"}
                 />
-                <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                <AvatarFallback>
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    getUserInitials()
+                  )}
+                </AvatarFallback>
               </Avatar>
             </div>
             <div className='flex-1 min-w-0'>
-              <p className='text-sm font-medium truncate'>
-                {user?.name || "User"}
-              </p>
-              <p className='text-xs text-muted-foreground truncate'>
-                {user?.email}
-              </p>
+              {isLoading ? (
+                <div className="space-y-1">
+                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+                </div>
+              ) : (
+                <>
+                  <p className='text-sm font-medium truncate'>
+                    {user?.name || "User"}
+                  </p>
+                  <p className='text-xs text-muted-foreground truncate'>
+                    {user?.email}
+                  </p>
+                </>
+              )}
             </div>
             <Button
               variant='ghost'
