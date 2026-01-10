@@ -13,8 +13,14 @@ export function AvatarStack({ maxVisible = 3, showPresence = true }: AvatarStack
   const { users } = useCollaborationStore();
   const { user } = useAuthStore();
 
-  // Get unique users (exclude current user)
-  const otherUsers = users.filter((u) => u.userId !== user?.id);
+  // Get unique users (exclude current user) and filter out invalid ones
+  const otherUsers = users.filter((u) =>
+    u.userId !== user?.id &&
+    u.userId &&
+    u.userName &&
+    u.userName !== 'undefined' &&
+    u.socketId
+  );
 
   // Get users to display
   const visibleUsers = otherUsers.slice(0, maxVisible);
@@ -36,8 +42,8 @@ export function AvatarStack({ maxVisible = 3, showPresence = true }: AvatarStack
       )}
 
       {/* Other users */}
-      {visibleUsers.map((collabUser, index) => (
-        <div key={`${collabUser.socketId}-${index}`} className="relative" title={collabUser.userName}>
+      {visibleUsers.map((collabUser) => (
+        <div key={`${collabUser.userId}-${collabUser.socketId}`} className="relative cursor-pointer hover:scale-110 transition-transform" title={`${collabUser.userName} is viewing`}>
           <Avatar
             className="h-8 w-8 border-2 border-background"
             style={{ borderColor: collabUser.color }}

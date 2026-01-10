@@ -61,6 +61,23 @@ function getColorForUserId(userId: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
+// Validation function to ensure user data is valid
+function isValidUser(user: CollaborationUser): boolean {
+  return !!(
+    user &&
+    user.userId &&
+    user.userId !== 'undefined' &&
+    user.userId !== 'null' &&
+    user.userName &&
+    user.userName !== 'undefined' &&
+    user.userName !== 'null' &&
+    user.socketId &&
+    user.socketId !== 'undefined' &&
+    user.socketId !== 'null' &&
+    user.color
+  );
+}
+
 export const useCollaborationStore = create<CollaborationState>((set, get) => ({
   isConnected: false,
   users: [],
@@ -72,6 +89,8 @@ export const useCollaborationStore = create<CollaborationState>((set, get) => ({
     set({
       currentNoteId: noteId,
       isConnected: false,
+      users: [],
+      cursors: new Map(),
     }),
 
   disconnect: () =>
@@ -83,9 +102,16 @@ export const useCollaborationStore = create<CollaborationState>((set, get) => ({
     }),
 
   addUser: (user) =>
-    set((state) => ({
-      users: [...state.users.filter((u) => u.userId !== user.userId), user],
-    })),
+    set((state) => {
+      // Only add valid users
+      if (!isValidUser(user)) {
+        console.warn('[CollabStore] Invalid user data, not adding:', user);
+        return state;
+      }
+      return {
+        users: [...state.users.filter((u) => u.userId !== user.userId), user],
+      };
+    }),
 
   removeUser: (userId) =>
     set((state) => ({
@@ -94,8 +120,13 @@ export const useCollaborationStore = create<CollaborationState>((set, get) => ({
     })),
 
   setUsers: (users) =>
-    set({
-      users,
+    set(() => {
+      // Filter out invalid users and deduplicate by userId, keeping the most recent entry
+      const validUsers = users.filter(isValidUser);
+      const uniqueUsers = Array.from(
+        new Map(validUsers.map(u => [u.userId, u])).values()
+      );
+      return { users: uniqueUsers };
     }),
 
   updateCursor: (userId: string, position: CursorPosition, userName: string, color: string) =>

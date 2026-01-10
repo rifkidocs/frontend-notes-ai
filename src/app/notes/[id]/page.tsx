@@ -67,11 +67,37 @@ export default function NoteEditorPage() {
   useEffect(() => {
     if (noteId === 'new') return;
 
-    // Connect to collaboration store (for presence/avatars outside editor)
-    connectCollab(noteId);
+    // Clear any stale data first
+    disconnectCollab();
 
-    // Cleanup on unmount
+    // Small delay to ensure cleanup is complete
+    const timeoutId = setTimeout(() => {
+      // Connect to collaboration store (for presence/avatars outside editor)
+      connectCollab(noteId);
+
+      // Emit join event to socket server
+      try {
+        const socket = socketManager.getSocket();
+        socket.emit('document:join', { noteId });
+      } catch (error) {
+        console.warn('[NoteEditor] Failed to join document room:', error);
+      }
+    }, 100);
+
+    // Cleanup on unmount or note change
     return () => {
+      clearTimeout(timeoutId);
+
+      // Emit leave event before disconnecting
+      try {
+        const socket = socketManager.getSocket();
+        if (socket?.connected) {
+          socket.emit('document:leave', { noteId });
+        }
+      } catch (error) {
+        console.warn('[NoteEditor] Failed to leave document room:', error);
+      }
+
       disconnectCollab();
     };
   }, [noteId, connectCollab, disconnectCollab]);

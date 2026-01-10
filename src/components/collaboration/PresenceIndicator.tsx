@@ -13,8 +13,14 @@ export function PresenceIndicator({ compact = false }: PresenceIndicatorProps) {
   const { users, isConnected } = useCollaborationStore();
   const { user } = useAuthStore();
 
-  // Get other users
-  const otherUsers = users.filter((u) => u.userId !== user?.id);
+  // Get other users and filter out invalid ones
+  const otherUsers = users.filter((u) =>
+    u.userId !== user?.id &&
+    u.userId &&
+    u.userName &&
+    u.userName !== 'undefined' &&
+    u.socketId
+  );
 
   if (!isConnected || otherUsers.length === 0) {
     return null;
@@ -33,11 +39,11 @@ export function PresenceIndicator({ compact = false }: PresenceIndicatorProps) {
     <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-full">
       <Users className="h-3.5 w-3.5 text-muted-foreground" />
       <div className="flex items-center gap-1">
-        {otherUsers.slice(0, 3).map((collabUser, index) => (
+        {otherUsers.slice(0, 3).map((collabUser) => (
           <Avatar
-            key={`${collabUser.socketId}-${index}`}
-            className="h-5 w-5 border border-background"
-            title={collabUser.userName}
+            key={`${collabUser.userId}-${collabUser.socketId}`}
+            className="h-5 w-5 border border-background cursor-pointer hover:scale-110 transition-transform"
+            title={`${collabUser.userName} is viewing`}
           >
             <AvatarFallback
               style={{
