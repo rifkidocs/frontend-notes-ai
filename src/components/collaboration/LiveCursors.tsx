@@ -1,6 +1,7 @@
 'use client';
 
 import { useCollaborationStore } from '@/lib/stores/collaboration-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { Editor } from '@tiptap/react';
 import { useEffect, useRef } from 'react';
 import { getPosFromLineCh, LineCh } from '@/lib/tiptap/cursor-conversion';
@@ -11,10 +12,13 @@ interface LiveCursorsProps {
 
 export function LiveCursors({ editor }: LiveCursorsProps) {
   const { cursors } = useCollaborationStore();
+  const { user } = useAuthStore();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Get cursor positions for rendering
-  const cursorEntries = Array.from(cursors.entries());
+  // Get cursor positions for rendering, filtering out our own cursor
+  const cursorEntries = Array.from(cursors.entries()).filter(
+    ([userId]) => userId !== user?.id
+  );
 
   if (cursorEntries.length === 0 || !editor) {
     return null;

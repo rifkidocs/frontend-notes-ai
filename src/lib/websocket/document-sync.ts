@@ -172,14 +172,13 @@ export class DocumentSync {
 
           switch (type) {
             case 'insert':
-              this.editor?.chain().focus().insertContentAt(position, text || '').run();
+              this.editor?.chain().insertContentAt(position, text || '').run();
               break;
             case 'delete':
-              this.editor?.chain().focus().deleteRange({ from: position, to: position + (length || 0) }).run();
+              this.editor?.chain().deleteRange({ from: position, to: position + (length || 0) }).run();
               break;
             case 'replace':
               this.editor?.chain()
-                .focus()
                 .deleteRange({ from: position, to: position + (length || 0) })
                 .insertContentAt(position, text || '')
                 .run();

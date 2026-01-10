@@ -15,6 +15,7 @@ export class CursorTracker {
   private editor: Editor | null;
   private cleanup: (() => void) | null = null;
   private updateCursorDebounced: DebouncedFunction<(position: LineCh) => void>;
+  private isStarted: boolean = false;
 
   constructor(noteId: string, editor: Editor | null) {
     this.noteId = noteId;
@@ -24,14 +25,17 @@ export class CursorTracker {
   }
 
   start() {
+    if (this.isStarted) return;
+    
     const collabStore = useCollaborationStore.getState();
-    const authStore = useAuthStore.getState();
     const socket = socketManager.getSocket();
 
     if (!socket) {
         console.warn('[CursorTracker] Socket not available, cannot start tracking yet');
         return;
     }
+
+    this.isStarted = true;
 
     // Listen for other users' cursor movements
     const handleCursorMoved = (data: {
@@ -40,8 +44,11 @@ export class CursorTracker {
       position: LineCh;
       color: string;
     }) => {
+      // Get the latest user ID from the store inside the handler
+      const currentUserId = useAuthStore.getState().user?.id;
+      
       // Don't track our own cursor
-      if (data.userId === authStore.user?.id) {
+      if (data.userId === currentUserId) {
         return;
       }
 
@@ -53,20 +60,41 @@ export class CursorTracker {
 
     // Track cursor position changes in editor
     if (this.editor) {
-      this.editor.on('selectionUpdate', () => {
-        const { from } = this.editor!.state.selection;
-        const position = getLineChFromPos(this.editor!.state.doc, from);
-        this.updateCursorDebounced(position);
-      });
-    }
+      const handleTransaction = ({ transaction }: { transaction: any }) => {
+        // Only broadcast if the selection actually changed
+        if (!transaction.selectionSet) return;
 
-    // Store cleanup function
-    this.cleanup = () => {
-      socket.off('cursor:moved', handleCursorMoved);
-      if (this.editor) {
-        this.editor.off('selectionUpdate', () => {});
-      }
-    };
+        // If the document changed and we are in read-only mode, 
+        // it means we just applied a remote update. Don't broadcast our cursor.
+        if (transaction.docChanged && !this.editor?.isEditable) return;
+
+        // Only send cursor updates if the editor is focused
+        if (this.editor?.isFocused) {
+          // Additional check for read-only: only send if it's likely a user interaction
+          // (not a programmatic selection change caused by remote update)
+          if (!this.editor.isEditable && !transaction.getMeta('pointer')) {
+            // If it's not a pointer event and not editable, it's probably programmatic
+            // We'll skip it to avoid "ghost cursors" following the typing user
+            return;
+          }
+
+          const { from } = transaction.selection;
+          const position = getLineChFromPos(transaction.doc, from);
+          this.updateCursorDebounced(position);
+        }
+      };
+
+      this.editor.on('transaction', handleTransaction);
+
+      // Store cleanup function
+      this.cleanup = () => {
+        socket.off('cursor:moved', handleCursorMoved);
+        if (this.editor) {
+          this.editor.off('transaction', handleTransaction);
+        }
+        this.isStarted = false;
+      };
+    }
   }
 
   stop() {
@@ -74,6 +102,7 @@ export class CursorTracker {
       this.cleanup();
       this.cleanup = null;
     }
+    this.isStarted = false;
   }
 
   private sendCursorUpdate(position: LineCh) {
@@ -89,4 +118,3 @@ export class CursorTracker {
 export function useCursorTracking(noteId: string, editor: Editor | null) {
   return new CursorTracker(noteId, editor);
 }
-
