@@ -29,7 +29,12 @@ export class DocumentSync {
     if (this.isJoined) {
       const socket = socketManager.getSocket();
       if (socket) {
-        socket.emit('document:join', { noteId: this.noteId, readOnly: this.options.readOnly });
+        const user = useAuthStore.getState().user;
+        socket.emit('document:join', { 
+          noteId: this.noteId, 
+          readOnly: this.options.readOnly,
+          user: user ? { id: user.id, name: user.name, avatar: user.avatar } : null
+        });
       }
       return;
     }
@@ -42,6 +47,18 @@ export class DocumentSync {
     }
 
     const collabStore = useCollaborationStore.getState();
+    const user = useAuthStore.getState().user;
+
+    // ... (rest of listeners)
+
+    // Emit join event with user info
+    console.log('[DocumentSync] Emitting join for note:', this.noteId);
+    socket.emit('document:join', { 
+      noteId: this.noteId, 
+      readOnly: this.options.readOnly,
+      user: user ? { id: user.id, name: user.name, avatar: user.avatar } : null
+    });
+    this.isJoined = true;
 
     // Handle users in document
     const handleUsers = (data: { users: CollaborationUser[] }) => {
