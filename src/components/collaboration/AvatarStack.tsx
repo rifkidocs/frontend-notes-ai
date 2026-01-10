@@ -14,13 +14,11 @@ export function AvatarStack({ maxVisible = 3, showPresence = true }: AvatarStack
   const { user } = useAuthStore();
 
   // Get unique users (exclude current user) and filter out invalid ones
-  const otherUsers = users.filter((u) =>
-    u.userId !== user?.id &&
-    u.userId &&
-    u.userName &&
-    u.userName !== 'undefined' &&
-    u.socketId
-  );
+  const otherUsers = users.filter((u) => {
+    const isSelf = u.userId === user?.id;
+    const isValid = !!(u.userId && u.userName && u.socketId);
+    return !isSelf && isValid;
+  });
 
   // Get users to display
   const visibleUsers = otherUsers.slice(0, maxVisible);

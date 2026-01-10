@@ -85,10 +85,11 @@ export function Editor({
   // Memoize the sync instances to avoid recreation on every render
   const documentSync = useMemo(() => {
     if (isCollabEnabled && editor) {
-      return useDocumentSync(noteId!, editor, { readOnly: !editable });
+      console.log('[Editor] Creating documentSync for note:', noteId);
+      return new (useDocumentSync(noteId!, editor).constructor as any)(noteId!, editor);
     }
     return null;
-  }, [isCollabEnabled, noteId, editor, editable]);
+  }, [isCollabEnabled, noteId, editor]);
 
   const cursorTracker = useMemo(() => {
     if (isCollabEnabled && editor) {
@@ -99,14 +100,17 @@ export function Editor({
 
   // Manage lifecycle of collaboration
   useEffect(() => {
-    if (documentSync) documentSync.join();
+    if (documentSync) {
+        documentSync.options = { readOnly: !editable };
+        documentSync.join();
+    }
     if (cursorTracker) cursorTracker.start();
 
     return () => {
       documentSync?.leave();
       cursorTracker?.stop();
     };
-  }, [documentSync, cursorTracker]);
+  }, [documentSync, cursorTracker, editable]);
 
   // Handle external updates
   useEffect(() => {

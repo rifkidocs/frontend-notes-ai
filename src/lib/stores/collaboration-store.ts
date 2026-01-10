@@ -66,14 +66,8 @@ function isValidUser(user: CollaborationUser): boolean {
   return !!(
     user &&
     user.userId &&
-    user.userId !== 'undefined' &&
-    user.userId !== 'null' &&
     user.userName &&
-    user.userName !== 'undefined' &&
-    user.userName !== 'null' &&
     user.socketId &&
-    user.socketId !== 'undefined' &&
-    user.socketId !== 'null' &&
     user.color
   );
 }

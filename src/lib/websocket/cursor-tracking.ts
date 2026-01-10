@@ -4,6 +4,8 @@ import { useCollaborationStore } from '@/lib/stores/collaboration-store';
 import { debounce } from '@/lib/utils/debounce';
 import { getLineChFromPos, LineCh } from '@/lib/tiptap/cursor-conversion';
 
+import { useAuthStore } from '@/lib/stores/auth-store';
+
 type DebouncedFunction<T extends (...args: any[]) => any> = (
   ...args: Parameters<T>
 ) => void;
@@ -23,7 +25,13 @@ export class CursorTracker {
 
   start() {
     const collabStore = useCollaborationStore.getState();
+    const authStore = useAuthStore.getState();
     const socket = socketManager.getSocket();
+
+    if (!socket) {
+        console.warn('[CursorTracker] Socket not available, cannot start tracking yet');
+        return;
+    }
 
     // Listen for other users' cursor movements
     const handleCursorMoved = (data: {
@@ -33,7 +41,7 @@ export class CursorTracker {
       color: string;
     }) => {
       // Don't track our own cursor
-      if (data.userId === collabStore.users.find(u => u.socketId === socketManager.getSocketId())?.userId) {
+      if (data.userId === authStore.user?.id) {
         return;
       }
 
@@ -69,7 +77,7 @@ export class CursorTracker {
   }
 
   private sendCursorUpdate(position: LineCh) {
-    if (socketManager.isConnected()) {
+    if (socketManager.isConnected() && typeof socketManager.emit === 'function') {
         socketManager.emit('cursor:update', {
           noteId: this.noteId,
           position,

@@ -12,16 +12,30 @@ class SocketManager {
   private reconnectDelay = 1000;
   private eventListeners: Map<string, Set<SocketEventCallback>> = new Map();
 
-  connect(): Socket {
+  constructor() {
+    // Bind methods to prevent "not a function" errors when passed as references
+    this.connect = this.connect.bind(this);
+    this.emit = this.emit.bind(this);
+    this.on = this.on.bind(this);
+    this.off = this.off.bind(this);
+    this.getSocket = this.getSocket.bind(this);
+    this.isConnected = this.isConnected.bind(this);
+  }
+
+  connect(): Socket | null {
+    if (typeof window === 'undefined') return null;
+    
     if (this.socket?.connected) {
       return this.socket;
     }
 
     const tokens = authApi.getTokens();
     if (!tokens) {
-      throw new Error('No authentication tokens available');
+      console.warn('[SocketManager] No tokens found, cannot connect');
+      return null;
     }
 
+    console.log('[SocketManager] Connecting to:', WS_URL);
     this.socket = io(WS_URL, {
       auth: { token: tokens.accessToken },
       reconnection: true,
@@ -39,29 +53,34 @@ class SocketManager {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('WebSocket connected');
+      console.log('[SocketManager] Connected, socketId:', this.socket?.id);
       this.reconnectAttempts = 0;
-      this.emit('connected', { socketId: this.socket?.id });
+      // Forward internal events
+      const callbacks = this.eventListeners.get('connected');
+      callbacks?.forEach(cb => cb({ socketId: this.socket?.id }));
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('WebSocket disconnected:', reason);
-      this.emit('disconnected', { reason });
+      console.log('[SocketManager] Disconnected:', reason);
+      const callbacks = this.eventListeners.get('disconnected');
+      callbacks?.forEach(cb => cb({ reason }));
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error);
+      console.error('[SocketManager] Connection error:', error);
       this.reconnectAttempts++;
 
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.error('Max reconnection attempts reached');
-        this.emit('maxReconnectAttemptsReached', {});
+        console.error('[SocketManager] Max reconnection attempts reached');
+        const callbacks = this.eventListeners.get('maxReconnectAttemptsReached');
+        callbacks?.forEach(cb => cb({}));
       }
     });
 
     this.socket.on('error', (data: { message: string }) => {
-      console.error('WebSocket error:', data.message);
-      this.emit('error', data);
+      console.error('[SocketManager] Error:', data.message);
+      const callbacks = this.eventListeners.get('error');
+      callbacks?.forEach(cb => cb(data));
     });
 
     // Set up event forwarding for registered listeners
@@ -74,9 +93,9 @@ class SocketManager {
 
   disconnect() {
     if (this.socket) {
+      console.log('[SocketManager] Manual disconnect');
       this.socket.disconnect();
       this.socket = null;
-      this.eventListeners.clear();
     }
   }
 
@@ -86,8 +105,7 @@ class SocketManager {
     }
     this.eventListeners.get(event)?.add(callback);
 
-    // If socket is already connected, register the listener immediately
-    if (this.socket?.connected) {
+    if (this.socket) {
       this.socket.on(event, callback);
     }
   }
@@ -101,7 +119,7 @@ class SocketManager {
       }
     }
 
-    if (this.socket?.connected) {
+    if (this.socket) {
       this.socket.off(event, callback);
     }
   }
@@ -110,12 +128,16 @@ class SocketManager {
     if (this.socket?.connected) {
       this.socket.emit(event, data);
     } else {
-      console.warn('Cannot emit event: socket not connected', event);
+      console.warn('[SocketManager] Cannot emit event: socket not connected', event);
     }
   }
 
-  getSocket() {
-    return this.socket || this.connect();
+  getSocket(): Socket | null {
+    try {
+      return this.socket || this.connect();
+    } catch (e) {
+      return null;
+    }
   }
 
   isConnected(): boolean {
@@ -128,4 +150,16 @@ class SocketManager {
 }
 
 // Singleton instance
-export const socketManager = new SocketManager();
+const socketManagerInstance = new SocketManager();
+
+// Explicitly export methods to avoid "not a function" errors if the instance is lost or proxied
+export const socketManager = {
+  connect: socketManagerInstance.connect,
+  disconnect: socketManagerInstance.disconnect,
+  on: socketManagerInstance.on,
+  off: socketManagerInstance.off,
+  emit: socketManagerInstance.emit,
+  getSocket: socketManagerInstance.getSocket,
+  isConnected: socketManagerInstance.isConnected,
+  getSocketId: socketManagerInstance.getSocketId
+};

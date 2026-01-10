@@ -18,7 +18,6 @@ export function PresenceIndicator({ compact = false }: PresenceIndicatorProps) {
     u.userId !== user?.id &&
     u.userId &&
     u.userName &&
-    u.userName !== 'undefined' &&
     u.socketId
   );
 

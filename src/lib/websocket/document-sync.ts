@@ -16,7 +16,8 @@ export class DocumentSync {
   private isApplyingRemote = false;
   private debouncedUpdate: ((...args: any[]) => void) | null = null;
   private latestVersion: number = 0;
-  private options: DocumentSyncOptions;
+  public options: DocumentSyncOptions;
+  private isJoined: boolean = false;
 
   constructor(noteId: string, editor: Editor | null, options: DocumentSyncOptions = {}) {
     this.noteId = noteId;
@@ -25,19 +26,30 @@ export class DocumentSync {
   }
 
   join() {
+    if (this.isJoined) {
+      const socket = socketManager.getSocket();
+      if (socket) {
+        socket.emit('document:join', { noteId: this.noteId, readOnly: this.options.readOnly });
+      }
+      return;
+    }
+    
     const socket = socketManager.getSocket();
-    const collabStore = useCollaborationStore.getState();
+    if (!socket) {
+      return;
+    }
 
-    // Emit join event
-    socket.emit('document:join', { noteId: this.noteId, readOnly: this.options.readOnly });
+    const collabStore = useCollaborationStore.getState();
 
     // Handle users in document
     const handleUsers = (data: { users: CollaborationUser[] }) => {
+      console.log('[DocumentSync] Users in document:', data.users);
       collabStore.setUsers(data.users);
     };
 
     // Handle user joined
     const handleUserJoined = (user: CollaborationUser) => {
+      console.log('[DocumentSync] User joined:', user.userName);
       collabStore.addUser(user);
     };
 
@@ -74,7 +86,6 @@ export class DocumentSync {
     // Handle version conflicts
     const handleConflict = (data: { currentVersion: number; yourVersion: number }) => {
       console.warn('[DocumentSync] Version conflict:', data);
-      // Update our version to match server's latest
       this.latestVersion = data.currentVersion;
     };
 
@@ -85,30 +96,22 @@ export class DocumentSync {
     socket.on('document:updated', handleDocumentUpdated);
     socket.on('document:conflict', handleConflict);
 
+    // Emit join event AFTER listeners are set up
+    console.log('[DocumentSync] Emitting join for note:', this.noteId);
+    socket.emit('document:join', { noteId: this.noteId, readOnly: this.options.readOnly });
+    this.isJoined = true;
+
     // Listen to local editor updates
     const handleLocalUpdate = () => {
-        // Don't send updates if in read-only mode
-        if (this.options.readOnly) {
-            return;
-        }
-
+        if (this.options.readOnly) return;
         if (this.isApplyingRemote || !this.editor) return;
 
         const content = this.editor.getJSON();
-        // Send current version as the "base" version we are editing from
         this.sendContentUpdate(content, this.latestVersion);
-
-        // We do NOT increment locally. We wait for the server to confirm via 'document:updated'
-        // or we assume it succeeded?
-        // If we don't increment, we might send the same version multiple times if we type fast?
-        // But debouncing helps.
-        // Also, if we receive our own update back, handleDocumentUpdated will update the version.
     };
 
-    // Debounce the update to avoid flooding the server
     this.debouncedUpdate = debounce(handleLocalUpdate, 500);
 
-    // Only listen to editor updates if not in read-only mode
     if (!this.options.readOnly && this.editor) {
         this.editor.on('update', this.debouncedUpdate);
     }
@@ -130,30 +133,31 @@ export class DocumentSync {
   }
 
   leave() {
+    if (!this.isJoined) return;
+    
     const socket = socketManager.getSocket();
-
-    // Emit leave event
-    socket.emit('document:leave', { noteId: this.noteId });
-
-    // Clean up event listeners
-    if (this.cleanup) {
-      this.cleanup();
-      this.cleanup = null;
+    if (socket) {
+      socket.emit('document:leave', { noteId: this.noteId });
+      if (this.cleanup) {
+        this.cleanup();
+        this.cleanup = null;
+      }
     }
 
-    // Clear collaboration state
     useCollaborationStore.getState().disconnect();
+    this.isJoined = false;
   }
 
   sendEdit(operations: any[], version: number) {
-    socketManager.emit('document:edit', {
-      noteId: this.noteId,
-      operations,
-      version,
-    });
+    if (typeof socketManager.emit === 'function') {
+      socketManager.emit('document:edit', {
+        noteId: this.noteId,
+        operations,
+        version,
+      });
+    }
   }
 
-  // Helper to send full content update
   sendContentUpdate(content: any, version: number) {
     this.sendEdit([{ type: 'setContent', content }], version);
   }
@@ -163,7 +167,6 @@ export class DocumentSync {
 
     this.isApplyingRemote = true;
     try {
-        // Apply each operation to the editor
         operations.forEach((op) => {
           const { type, position, length, text, content } = op;
 
@@ -183,20 +186,13 @@ export class DocumentSync {
               break;
             case 'setContent':
               if (content) {
-                // Check if content is actually different to avoid cursor jumps if possible
                 const currentContent = this.editor?.getJSON();
                 if (JSON.stringify(currentContent) !== JSON.stringify(content)) {
-                    // Save cursor position
                     const { from, to } = this.editor?.state.selection || { from: 0, to: 0 };
-
                     this.editor?.commands.setContent(content);
-
-                    // Restore cursor position if we had focus or if we want to keep position
-                    // We need to ensure position is valid in new content
                     const newSize = this.editor?.state.doc.content.size || 0;
                     const safeFrom = Math.min(from, newSize);
                     const safeTo = Math.min(to, newSize);
-
                     if (this.editor?.isFocused) {
                         this.editor?.commands.setTextSelection({ from: safeFrom, to: safeTo });
                     }
