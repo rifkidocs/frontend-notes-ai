@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { CollaborationUser, CursorPosition } from '@/lib/types';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 interface CursorInfo {
   position: CursorPosition;
@@ -87,6 +88,7 @@ export const useCollaborationStore = create<CollaborationState>((set, get) => ({
   myColor: generateUserColor(),
   currentNoteId: null,
 
+  // Actions
   connect: (noteId) =>
     set({
       currentNoteId: noteId,
@@ -103,12 +105,20 @@ export const useCollaborationStore = create<CollaborationState>((set, get) => ({
       currentNoteId: null,
     }),
 
+  setMyColor: (color: string) => set({ myColor: color }),
+
   addUser: (user) =>
     set((state) => {
       if (!isValidUser(user)) return state;
       const normalized = normalizeUser(user);
+      
+      // If this is us, update our color
+      const currentUser = useAuthStore.getState().user;
+      const isMe = normalized.userId === currentUser?.id;
+      
       return {
         users: [...state.users.filter((u) => u.userId !== normalized.userId), normalized],
+        myColor: isMe ? normalized.color : state.myColor
       };
     }),
 
@@ -119,12 +129,20 @@ export const useCollaborationStore = create<CollaborationState>((set, get) => ({
     })),
 
   setUsers: (users) =>
-    set(() => {
+    set((state) => {
       const validUsers = (users || []).filter(isValidUser).map(normalizeUser);
       const uniqueUsers = Array.from(
         new Map(validUsers.map(u => [u.userId, u])).values()
       );
-      return { users: uniqueUsers };
+      
+      // Update our color if we are in the list
+      const currentUser = useAuthStore.getState().user;
+      const meInList = uniqueUsers.find(u => u.userId === currentUser?.id);
+      
+      return { 
+        users: uniqueUsers,
+        myColor: meInList ? meInList.color : state.myColor
+      };
     }),
 
   updateCursor: (userId: string, position: CursorPosition, userName: string, color: string) =>

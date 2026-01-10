@@ -113,9 +113,9 @@ export class DocumentSync {
     socket.on('document:updated', handleDocumentUpdated);
     socket.on('document:conflict', handleConflict);
 
-    // Emit join event AFTER listeners are set up
+    // Emit join event following new API docs (only noteId required as backend gets user from JWT)
     console.log('[DocumentSync] Emitting join for note:', this.noteId);
-    socket.emit('document:join', { noteId: this.noteId, readOnly: this.options.readOnly });
+    socket.emit('document:join', { noteId: this.noteId });
     this.isJoined = true;
 
     // Listen to local editor updates

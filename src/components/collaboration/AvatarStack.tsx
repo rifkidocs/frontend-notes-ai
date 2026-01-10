@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCollaborationStore } from '@/lib/stores/collaboration-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -10,8 +11,17 @@ interface AvatarStackProps {
 }
 
 export function AvatarStack({ maxVisible = 3, showPresence = true }: AvatarStackProps) {
-  const { users } = useCollaborationStore();
+  const { users, myColor } = useCollaborationStore();
   const { user } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="flex items-center -space-x-2 h-8" />;
+  }
 
   // Get unique users (exclude current user) and filter out invalid ones
   const otherUsers = users.filter((u) => {

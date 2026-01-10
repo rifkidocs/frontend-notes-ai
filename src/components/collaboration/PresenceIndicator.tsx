@@ -4,6 +4,7 @@ import { useCollaborationStore } from '@/lib/stores/collaboration-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface PresenceIndicatorProps {
   compact?: boolean;
@@ -12,6 +13,11 @@ interface PresenceIndicatorProps {
 export function PresenceIndicator({ compact = false }: PresenceIndicatorProps) {
   const { users, isConnected } = useCollaborationStore();
   const { user } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Get other users and filter out invalid ones
   const otherUsers = users.filter((u) =>
@@ -21,7 +27,7 @@ export function PresenceIndicator({ compact = false }: PresenceIndicatorProps) {
     u.socketId
   );
 
-  if (!isConnected || otherUsers.length === 0) {
+  if (!mounted || !isConnected || otherUsers.length === 0) {
     return null;
   }
 
