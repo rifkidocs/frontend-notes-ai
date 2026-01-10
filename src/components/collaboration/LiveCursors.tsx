@@ -15,9 +15,9 @@ export function LiveCursors({ editor }: LiveCursorsProps) {
   const { user } = useAuthStore();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Get cursor positions for rendering, filtering out our own cursor
+  // Get cursor positions for rendering, filtering out our own cursor only if we have an ID
   const cursorEntries = Array.from(cursors.entries()).filter(
-    ([userId]) => userId !== user?.id
+    ([userId]) => !user?.id || userId !== user?.id
   );
 
   if (cursorEntries.length === 0 || !editor) {

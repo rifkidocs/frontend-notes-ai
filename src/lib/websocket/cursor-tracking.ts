@@ -31,28 +31,36 @@ export class CursorTracker {
     const socket = socketManager.getSocket();
 
     if (!socket) {
-        console.warn('[CursorTracker] Socket not available, cannot start tracking yet');
+        // If socket is not available yet, wait a bit and try again
+        // This is common during initial auth loading
+        setTimeout(() => this.start(), 1000);
         return;
     }
 
     this.isStarted = true;
 
     // Listen for other users' cursor movements
-    const handleCursorMoved = (data: {
-      userId: string;
-      userName: string;
-      position: LineCh;
-      color: string;
-    }) => {
+    const handleCursorMoved = (data: any) => {
+      // Handle both naming conventions from server
+      const remoteUserId = data.userId || data.id;
+      const remoteUserName = data.userName || data.name;
+      
+      if (!remoteUserId) return;
+
       // Get the latest user ID from the store inside the handler
       const currentUserId = useAuthStore.getState().user?.id;
       
-      // Don't track our own cursor
-      if (data.userId === currentUserId) {
+      // Don't track our own cursor if we have a valid user ID
+      if (currentUserId && remoteUserId === currentUserId) {
         return;
       }
 
-      collabStore.updateCursor(data.userId, data.position, data.userName, data.color);
+      collabStore.updateCursor(
+        remoteUserId, 
+        data.position, 
+        remoteUserName || 'Anonymous', 
+        data.color || '#999'
+      );
     };
 
     // Register event listener
@@ -61,23 +69,15 @@ export class CursorTracker {
     // Track cursor position changes in editor
     if (this.editor) {
       const handleTransaction = ({ transaction }: { transaction: any }) => {
-        // Only broadcast if the selection actually changed
-        if (!transaction.selectionSet) return;
-
+        // Broadcast if selection changed or if it's a focus event
+        // We don't just check transaction.selectionSet because we want to be responsive
+        
         // If the document changed and we are in read-only mode, 
         // it means we just applied a remote update. Don't broadcast our cursor.
         if (transaction.docChanged && !this.editor?.isEditable) return;
 
-        // Only send cursor updates if the editor is focused
-        if (this.editor?.isFocused) {
-          // Additional check for read-only: only send if it's likely a user interaction
-          // (not a programmatic selection change caused by remote update)
-          if (!this.editor.isEditable && !transaction.getMeta('pointer')) {
-            // If it's not a pointer event and not editable, it's probably programmatic
-            // We'll skip it to avoid "ghost cursors" following the typing user
-            return;
-          }
-
+        // Send cursor updates
+        if (this.editor?.isFocused || transaction.getMeta('pointer')) {
           const { from } = transaction.selection;
           const position = getLineChFromPos(transaction.doc, from);
           this.updateCursorDebounced(position);

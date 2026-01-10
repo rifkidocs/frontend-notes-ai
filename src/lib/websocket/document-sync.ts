@@ -36,6 +36,8 @@ export class DocumentSync {
     
     const socket = socketManager.getSocket();
     if (!socket) {
+      // Retry joining after a short delay if socket is not ready
+      setTimeout(() => this.join(), 1000);
       return;
     }
 
@@ -48,23 +50,20 @@ export class DocumentSync {
     };
 
     // Handle user joined
-    const handleUserJoined = (user: CollaborationUser) => {
-      console.log('[DocumentSync] User joined:', user.userName);
+    const handleUserJoined = (user: any) => {
+      const userName = user.userName || user.name || 'Anonymous';
+      console.log('[DocumentSync] User joined:', userName);
       collabStore.addUser(user);
     };
 
     // Handle user left
-    const handleUserLeft = (data: { userId: string; socketId: string }) => {
-      collabStore.removeUser(data.userId);
+    const handleUserLeft = (data: any) => {
+      const userId = data.userId || data.id;
+      if (userId) collabStore.removeUser(userId);
     };
 
     // Handle document updates from other users
-    const handleDocumentUpdated = (data: {
-      operations: any[];
-      version: number;
-      userId: string;
-      userName: string;
-    }) => {
+    const handleDocumentUpdated = (data: any) => {
       // Update our local version tracker
       if (data.version > this.latestVersion) {
         this.latestVersion = data.version;
@@ -74,8 +73,9 @@ export class DocumentSync {
       const currentUser = useAuthStore.getState().user;
       const myUserId = currentUser?.id;
 
-      // Don't apply our own updates
-      if (myUserId && data.userId === myUserId) {
+      // Don't apply our own updates (check both data.userId and data.id)
+      const remoteUserId = data.userId || data.id;
+      if (myUserId && remoteUserId === myUserId) {
         return;
       }
 

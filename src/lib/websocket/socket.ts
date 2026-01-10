@@ -133,11 +133,20 @@ class SocketManager {
   }
 
   getSocket(): Socket | null {
-    try {
-      return this.socket || this.connect();
-    } catch (e) {
-      return null;
+    if (typeof window === 'undefined') return null;
+    
+    if (this.socket?.connected) {
+      return this.socket;
     }
+
+    // If we have a socket but it's not connected, try to connect it
+    if (this.socket && !this.socket.connected) {
+      this.socket.connect();
+      return this.socket;
+    }
+
+    // Otherwise try to create a new connection
+    return this.connect();
   }
 
   isConnected(): boolean {

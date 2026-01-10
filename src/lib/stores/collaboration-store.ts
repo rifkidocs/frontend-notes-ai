@@ -10,7 +10,7 @@ interface CursorInfo {
 interface CollaborationState {
   isConnected: boolean;
   users: CollaborationUser[];
-  cursors: Map<string, CursorInfo>;
+  cursors: Map<string, CursorInfo>; // Key is userId
   myColor: string;
   currentNoteId: string | null;
 
@@ -62,14 +62,22 @@ function getColorForUserId(userId: string): string {
 }
 
 // Validation function to ensure user data is valid
-function isValidUser(user: CollaborationUser): boolean {
+function isValidUser(user: any): boolean {
   return !!(
     user &&
-    user.userId &&
-    user.userName &&
-    user.socketId &&
-    user.color
+    (user.userId || user.id) &&
+    (user.userName || user.name)
   );
+}
+
+// Helper to normalize user data
+function normalizeUser(user: any): CollaborationUser {
+  return {
+    userId: user.userId || user.id,
+    userName: user.userName || user.name,
+    socketId: user.socketId || '',
+    color: user.color || getColorForUserId(user.userId || user.id),
+  };
 }
 
 export const useCollaborationStore = create<CollaborationState>((set, get) => ({
@@ -97,13 +105,10 @@ export const useCollaborationStore = create<CollaborationState>((set, get) => ({
 
   addUser: (user) =>
     set((state) => {
-      // Only add valid users
-      if (!isValidUser(user)) {
-        console.warn('[CollabStore] Invalid user data, not adding:', user);
-        return state;
-      }
+      if (!isValidUser(user)) return state;
+      const normalized = normalizeUser(user);
       return {
-        users: [...state.users.filter((u) => u.userId !== user.userId), user],
+        users: [...state.users.filter((u) => u.userId !== normalized.userId), normalized],
       };
     }),
 
@@ -115,8 +120,7 @@ export const useCollaborationStore = create<CollaborationState>((set, get) => ({
 
   setUsers: (users) =>
     set(() => {
-      // Filter out invalid users and deduplicate by userId, keeping the most recent entry
-      const validUsers = users.filter(isValidUser);
+      const validUsers = (users || []).filter(isValidUser).map(normalizeUser);
       const uniqueUsers = Array.from(
         new Map(validUsers.map(u => [u.userId, u])).values()
       );
