@@ -307,7 +307,7 @@
 
   /* Smooth scrolling */
   html {
-    scroll-behavior: auto;
+    scroll-behavior: smooth;
   }
 
   /* Custom selection */

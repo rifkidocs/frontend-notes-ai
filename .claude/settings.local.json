@@ -6,7 +6,9 @@
       "Bash(npx shadcn@latest add:*)",
       "Skill(frontend-design:frontend-design)",
       "Bash(tree:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)"
     ]
   }
 }

@@ -213,7 +213,10 @@ export default function Home() {
       >
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3">
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="flex items-center gap-3"
+            >
               <motion.div
                 className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30"
                 whileHover={{ scale: 1.05, rotate: 5 }}
@@ -222,7 +225,7 @@ export default function Home() {
                 <FileText className="h-5 w-5 text-primary-foreground" />
               </motion.div>
               <span className="font-bold text-xl hidden sm:block">Notes AI</span>
-            </Link>
+            </button>
 
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group">
