@@ -25,7 +25,6 @@ export class DocumentSync {
   }
 
   join() {
-    console.log('[DocumentSync] Joining document room:', this.noteId, 'readOnly:', this.options.readOnly);
     const socket = socketManager.getSocket();
     const collabStore = useCollaborationStore.getState();
 
@@ -34,19 +33,16 @@ export class DocumentSync {
 
     // Handle users in document
     const handleUsers = (data: { users: CollaborationUser[] }) => {
-      console.log('[DocumentSync] Users in room:', data.users);
       collabStore.setUsers(data.users);
     };
 
     // Handle user joined
     const handleUserJoined = (user: CollaborationUser) => {
-      console.log('[DocumentSync] User joined:', user);
       collabStore.addUser(user);
     };
 
     // Handle user left
     const handleUserLeft = (data: { userId: string; socketId: string }) => {
-      console.log('[DocumentSync] User left:', data);
       collabStore.removeUser(data.userId);
     };
 
@@ -98,7 +94,6 @@ export class DocumentSync {
 
         if (this.isApplyingRemote || !this.editor) return;
 
-        console.log('[DocumentSync] Local update detected, sending...');
         const content = this.editor.getJSON();
         // Send current version as the "base" version we are editing from
         this.sendContentUpdate(content, this.latestVersion);
@@ -125,7 +120,7 @@ export class DocumentSync {
       socket.off('document:user:left', handleUserLeft);
       socket.off('document:updated', handleDocumentUpdated);
       socket.off('document:conflict', handleConflict);
-      
+
       if (this.editor && this.debouncedUpdate) {
           this.editor.off('update', this.debouncedUpdate);
       }
@@ -135,7 +130,6 @@ export class DocumentSync {
   }
 
   leave() {
-    console.log('[DocumentSync] Leaving document room:', this.noteId);
     const socket = socketManager.getSocket();
 
     // Emit leave event
@@ -166,14 +160,13 @@ export class DocumentSync {
 
   private applyOperations(operations: any[]) {
     if (!this.editor) return;
-    
-    console.log('[DocumentSync] Applying operations:', operations.length);
+
     this.isApplyingRemote = true;
     try {
         // Apply each operation to the editor
         operations.forEach((op) => {
           const { type, position, length, text, content } = op;
-    
+
           switch (type) {
             case 'insert':
               this.editor?.chain().focus().insertContentAt(position, text || '').run();
@@ -193,24 +186,20 @@ export class DocumentSync {
                 // Check if content is actually different to avoid cursor jumps if possible
                 const currentContent = this.editor?.getJSON();
                 if (JSON.stringify(currentContent) !== JSON.stringify(content)) {
-                    console.log('[DocumentSync] Replacing content');
-                    
                     // Save cursor position
                     const { from, to } = this.editor?.state.selection || { from: 0, to: 0 };
-                    
+
                     this.editor?.commands.setContent(content);
-                    
+
                     // Restore cursor position if we had focus or if we want to keep position
                     // We need to ensure position is valid in new content
                     const newSize = this.editor?.state.doc.content.size || 0;
                     const safeFrom = Math.min(from, newSize);
                     const safeTo = Math.min(to, newSize);
-                    
+
                     if (this.editor?.isFocused) {
                         this.editor?.commands.setTextSelection({ from: safeFrom, to: safeTo });
                     }
-                } else {
-                    console.log('[DocumentSync] Content identical, skipping replacement');
                 }
               }
               break;

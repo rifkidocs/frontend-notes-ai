@@ -86,18 +86,10 @@ export default function NoteEditorPage() {
       // Can edit if: owner OR (public note with EDIT access)
       const canEdit = isOwner || !isPublicViewOnly;
 
-      console.log('[NoteEditor] Permission check:', {
-        noteId,
-        isOwner,
-        isPublicViewOnly,
-        canEdit,
-      });
-
       setCanEditNote(canEdit);
 
       // If cannot edit, redirect to shared page
       if (!canEdit) {
-        console.log('[NoteEditor] Cannot edit, redirecting to shared page');
         router.replace(`/shared/${noteId}`);
         return;
       }

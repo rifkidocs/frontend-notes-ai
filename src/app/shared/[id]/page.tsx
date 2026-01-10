@@ -55,7 +55,6 @@ export default function SharedNotePage() {
 
   // Cleanup any existing WebSocket connections on mount
   useEffect(() => {
-    console.log('[SharedNote] Cleaning up any existing WebSocket connections');
     disconnectCollab();
 
     // Also try to emit leave for any room
@@ -92,15 +91,6 @@ export default function SharedNotePage() {
           (access) => access.userId === currentUserId && access.accessLevel === 'EDIT'
         );
 
-        console.log('[SharedNote] Access check:', {
-          noteId: id,
-          currentUserId,
-          ownerId: publicNote.ownerId,
-          isOwner,
-          publicAccess: publicNote.publicAccess,
-          hasExplicitEditAccess,
-        });
-
         // Determine if user can edit this note
         let canEdit = false;
 
@@ -112,20 +102,14 @@ export default function SharedNotePage() {
           canEdit = isOwner;
         }
 
-        console.log('[SharedNote] Can edit?', canEdit);
-
         if (canEdit) {
-          console.log('[SharedNote] Redirecting to full editor');
           try {
             await notesApi.get(id);
             router.replace(`/notes/${id}`);
             return;
           } catch (err) {
-            console.log('[SharedNote] Failed to access private note, showing public view');
             // Fall through to show public view
           }
-        } else {
-          console.log('[SharedNote] Showing read-only public view');
         }
       }
 
