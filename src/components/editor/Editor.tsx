@@ -85,7 +85,6 @@ export function Editor({
   // Memoize the sync instances to avoid recreation on every render
   const documentSync = useMemo(() => {
     if (isCollabEnabled && editor) {
-      console.log('[Editor] Creating documentSync for note:', noteId);
       return new (useDocumentSync(noteId!, editor).constructor as any)(noteId!, editor);
     }
     return null;

@@ -26,50 +26,23 @@ export class DocumentSync {
   }
 
   join() {
-    if (this.isJoined) {
-      const socket = socketManager.getSocket();
-      if (socket) {
-        const user = useAuthStore.getState().user;
-        socket.emit('document:join', { 
-          noteId: this.noteId, 
-          readOnly: this.options.readOnly,
-          user: user ? { id: user.id, name: user.name, avatar: user.avatar } : null
-        });
-      }
-      return;
-    }
+    if (this.isJoined) return;
     
     const socket = socketManager.getSocket();
     if (!socket) {
-      // Retry joining after a short delay if socket is not ready
       setTimeout(() => this.join(), 1000);
       return;
     }
 
     const collabStore = useCollaborationStore.getState();
-    const user = useAuthStore.getState().user;
-
-    // ... (rest of listeners)
-
-    // Emit join event with user info
-    console.log('[DocumentSync] Emitting join for note:', this.noteId);
-    socket.emit('document:join', { 
-      noteId: this.noteId, 
-      readOnly: this.options.readOnly,
-      user: user ? { id: user.id, name: user.name, avatar: user.avatar } : null
-    });
-    this.isJoined = true;
 
     // Handle users in document
-    const handleUsers = (data: { users: CollaborationUser[] }) => {
-      console.log('[DocumentSync] Users in document:', data.users);
+    const handleUsers = (data: { users: any[] }) => {
       collabStore.setUsers(data.users);
     };
 
     // Handle user joined
     const handleUserJoined = (user: any) => {
-      const userName = user.userName || user.name || 'Anonymous';
-      console.log('[DocumentSync] User joined:', userName);
       collabStore.addUser(user);
     };
 
@@ -81,28 +54,23 @@ export class DocumentSync {
 
     // Handle document updates from other users
     const handleDocumentUpdated = (data: any) => {
-      // Update our local version tracker
       if (data.version > this.latestVersion) {
         this.latestVersion = data.version;
       }
 
-      // Get current user ID reliably
       const currentUser = useAuthStore.getState().user;
       const myUserId = currentUser?.id;
 
-      // Don't apply our own updates (check both data.userId and data.id)
       const remoteUserId = data.userId || data.id;
       if (myUserId && remoteUserId === myUserId) {
         return;
       }
 
-      // Apply operations to editor
       this.applyOperations(data.operations);
     };
 
     // Handle version conflicts
     const handleConflict = (data: { currentVersion: number; yourVersion: number }) => {
-      console.warn('[DocumentSync] Version conflict:', data);
       this.latestVersion = data.currentVersion;
     };
 
@@ -113,8 +81,7 @@ export class DocumentSync {
     socket.on('document:updated', handleDocumentUpdated);
     socket.on('document:conflict', handleConflict);
 
-    // Emit join event following new API docs (only noteId required as backend gets user from JWT)
-    console.log('[DocumentSync] Emitting join for note:', this.noteId);
+    // Emit join event following new API docs
     socket.emit('document:join', { noteId: this.noteId });
     this.isJoined = true;
 

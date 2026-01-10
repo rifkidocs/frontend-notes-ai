@@ -35,7 +35,6 @@ class SocketManager {
       return null;
     }
 
-    console.log('[SocketManager] Connecting to:', WS_URL);
     this.socket = io(WS_URL, {
       auth: { token: tokens.accessToken },
       reconnection: true,
@@ -53,7 +52,6 @@ class SocketManager {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('[SocketManager] Connected, socketId:', this.socket?.id);
       this.reconnectAttempts = 0;
       // Forward internal events
       const callbacks = this.eventListeners.get('connected');
@@ -61,7 +59,6 @@ class SocketManager {
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('[SocketManager] Disconnected:', reason);
       const callbacks = this.eventListeners.get('disconnected');
       callbacks?.forEach(cb => cb({ reason }));
     });
@@ -93,7 +90,6 @@ class SocketManager {
 
   disconnect() {
     if (this.socket) {
-      console.log('[SocketManager] Manual disconnect');
       this.socket.disconnect();
       this.socket = null;
     }

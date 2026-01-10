@@ -39,9 +39,14 @@ export function AvatarStack({ maxVisible = 3, showPresence = true }: AvatarStack
     <div className="flex items-center -space-x-2">
       {/* Current user */}
       <div className="relative" title={`You (${user?.name || 'Guest'})`}>
-        <Avatar className="h-8 w-8 border-2 border-background">
+        <Avatar 
+          className="h-8 w-8 border-2"
+          style={{ borderColor: myColor }}
+        >
           <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'You'} />
-          <AvatarFallback>{getUserInitials(user?.name || 'You')}</AvatarFallback>
+          <AvatarFallback style={{ backgroundColor: myColor, color: 'white' }}>
+            {getUserInitials(user?.name || 'You')}
+          </AvatarFallback>
         </Avatar>
         {showPresence && (
           <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-background" />
