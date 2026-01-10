@@ -5,6 +5,10 @@ import { CollaborationUser } from '@/lib/types';
 import { debounce } from '@/lib/utils/debounce';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
+interface DocumentSyncOptions {
+  readOnly?: boolean;
+}
+
 export class DocumentSync {
   private noteId: string;
   private editor: Editor | null;
@@ -12,19 +16,21 @@ export class DocumentSync {
   private isApplyingRemote = false;
   private debouncedUpdate: ((...args: any[]) => void) | null = null;
   private latestVersion: number = 0;
+  private options: DocumentSyncOptions;
 
-  constructor(noteId: string, editor: Editor | null) {
+  constructor(noteId: string, editor: Editor | null, options: DocumentSyncOptions = {}) {
     this.noteId = noteId;
     this.editor = editor;
+    this.options = { readOnly: false, ...options };
   }
 
   join() {
-    console.log('[DocumentSync] Joining document room:', this.noteId);
+    console.log('[DocumentSync] Joining document room:', this.noteId, 'readOnly:', this.options.readOnly);
     const socket = socketManager.getSocket();
     const collabStore = useCollaborationStore.getState();
 
     // Emit join event
-    socket.emit('document:join', { noteId: this.noteId });
+    socket.emit('document:join', { noteId: this.noteId, readOnly: this.options.readOnly });
 
     // Handle users in document
     const handleUsers = (data: { users: CollaborationUser[] }) => {
@@ -85,15 +91,20 @@ export class DocumentSync {
 
     // Listen to local editor updates
     const handleLocalUpdate = () => {
+        // Don't send updates if in read-only mode
+        if (this.options.readOnly) {
+            return;
+        }
+
         if (this.isApplyingRemote || !this.editor) return;
-        
+
         console.log('[DocumentSync] Local update detected, sending...');
         const content = this.editor.getJSON();
         // Send current version as the "base" version we are editing from
         this.sendContentUpdate(content, this.latestVersion);
-        
+
         // We do NOT increment locally. We wait for the server to confirm via 'document:updated'
-        // or we assume it succeeded? 
+        // or we assume it succeeded?
         // If we don't increment, we might send the same version multiple times if we type fast?
         // But debouncing helps.
         // Also, if we receive our own update back, handleDocumentUpdated will update the version.
@@ -102,7 +113,8 @@ export class DocumentSync {
     // Debounce the update to avoid flooding the server
     this.debouncedUpdate = debounce(handleLocalUpdate, 500);
 
-    if (this.editor) {
+    // Only listen to editor updates if not in read-only mode
+    if (!this.options.readOnly && this.editor) {
         this.editor.on('update', this.debouncedUpdate);
     }
 
@@ -212,6 +224,6 @@ export class DocumentSync {
   }
 }
 
-export function useDocumentSync(noteId: string, editor: Editor | null) {
-  return new DocumentSync(noteId, editor);
+export function useDocumentSync(noteId: string, editor: Editor | null, options?: DocumentSyncOptions) {
+  return new DocumentSync(noteId, editor, options);
 }

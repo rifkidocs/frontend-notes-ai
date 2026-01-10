@@ -62,7 +62,8 @@ export function Editor({
     editable,
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
-      if (onChange) {
+      // Only trigger onChange if editor is editable
+      if (onChange && editable) {
         const json = editor.getJSON();
         const apiContent = tipTapToApi(json);
         onChange(apiContent);
@@ -78,16 +79,16 @@ export function Editor({
     },
   });
 
-  // Collaboration hooks integration
+  // Collaboration hooks integration - enable for real-time view-only mode too
   const isCollabEnabled = !!(noteId && noteId !== 'new');
 
   // Memoize the sync instances to avoid recreation on every render
   const documentSync = useMemo(() => {
     if (isCollabEnabled && editor) {
-      return useDocumentSync(noteId!, editor);
+      return useDocumentSync(noteId!, editor, { readOnly: !editable });
     }
     return null;
-  }, [isCollabEnabled, noteId, editor]);
+  }, [isCollabEnabled, noteId, editor, editable]);
 
   const cursorTracker = useMemo(() => {
     if (isCollabEnabled && editor) {

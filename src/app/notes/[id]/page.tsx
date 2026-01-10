@@ -62,10 +62,54 @@ export default function NoteEditorPage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState<NoteContent | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [canEditNote, setCanEditNote] = useState<boolean | null>(null);
 
-  // Setup real-time collaboration for existing notes
+  // Fetch note on mount
+  useEffect(() => {
+    if (noteId === 'new') {
+      clearCurrentNote();
+      setTitle('');
+      setContent(null);
+      setCanEditNote(true);
+      return;
+    }
+
+    fetchNote(noteId);
+  }, [noteId, fetchNote, clearCurrentNote]);
+
+  // Check permissions and enable editing only if user has access
+  useEffect(() => {
+    if (currentNote && noteId !== 'new') {
+      const isOwner = currentNote.ownerId === user?.id;
+      const isPublicViewOnly = currentNote.isPublic && currentNote.publicAccess === 'VIEW';
+
+      // Can edit if: owner OR (public note with EDIT access)
+      const canEdit = isOwner || !isPublicViewOnly;
+
+      console.log('[NoteEditor] Permission check:', {
+        noteId,
+        isOwner,
+        isPublicViewOnly,
+        canEdit,
+      });
+
+      setCanEditNote(canEdit);
+
+      // If cannot edit, redirect to shared page
+      if (!canEdit) {
+        console.log('[NoteEditor] Cannot edit, redirecting to shared page');
+        router.replace(`/shared/${noteId}`);
+        return;
+      }
+    } else if (noteId === 'new') {
+      setCanEditNote(true);
+    }
+  }, [currentNote, noteId, user?.id, router]);
+
+  // Setup real-time collaboration ONLY after permission is verified
   useEffect(() => {
     if (noteId === 'new') return;
+    if (canEditNote !== true) return; // Wait for permission check
 
     // Clear any stale data first
     disconnectCollab();
@@ -100,19 +144,7 @@ export default function NoteEditorPage() {
 
       disconnectCollab();
     };
-  }, [noteId, connectCollab, disconnectCollab]);
-
-  // Fetch note on mount
-  useEffect(() => {
-    if (noteId === 'new') {
-      clearCurrentNote();
-      setTitle('');
-      setContent(null);
-      return;
-    }
-
-    fetchNote(noteId);
-  }, [noteId, fetchNote, clearCurrentNote]);
+  }, [noteId, canEditNote, connectCollab, disconnectCollab]);
 
   // Set title and content when note is loaded
   useEffect(() => {

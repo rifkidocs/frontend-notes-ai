@@ -42,9 +42,10 @@ interface NotesSidebarProps {
   isOpen?: boolean;
   onToggle?: () => void;
   isMobile?: boolean;
+  readOnly?: boolean;
 }
 
-export function NotesSidebar({ noteId, isOpen = true, onToggle, isMobile = false }: NotesSidebarProps) {
+export function NotesSidebar({ noteId, isOpen = true, onToggle, isMobile = false, readOnly = false }: NotesSidebarProps) {
   const pathname = usePathname();
   const { user, clearAuth } = useAuthStore();
 
@@ -93,25 +94,27 @@ export function NotesSidebar({ noteId, isOpen = true, onToggle, isMobile = false
         </div>
       </div>
 
-      {/* New Note Button */}
-      <div className='p-4'>
-        <Link href='/notes/new'>
-          <Button className='w-full gap-2 shadow-md shadow-primary/20' size='sm'>
-            <Plus className='h-4 w-4' />
-            <AnimatePresence mode='wait'>
-              {isOpen && (
-                <motion.span
-                  variants={navItemVariants}
-                  initial='closed'
-                  animate='open'
-                  exit='closed'>
-                  New Note
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </Button>
-        </Link>
-      </div>
+      {/* New Note Button - hide in read-only mode */}
+      {!readOnly && (
+        <div className='p-4'>
+          <Link href='/notes/new'>
+            <Button className='w-full gap-2 shadow-md shadow-primary/20' size='sm'>
+              <Plus className='h-4 w-4' />
+              <AnimatePresence mode='wait'>
+                {isOpen && (
+                  <motion.span
+                    variants={navItemVariants}
+                    initial='closed'
+                    animate='open'
+                    exit='closed'>
+                    New Note
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className='flex-1 overflow-y-auto px-3 py-2'>
