@@ -96,7 +96,7 @@ export default function SharedNotePage() {
 
         if (publicNote.publicAccess === 'EDIT') {
           // Public EDIT: owner + authenticated users with explicit access
-          canEdit = isOwner || hasExplicitEditAccess;
+          canEdit = isOwner || !!hasExplicitEditAccess;
         } else {
           // Public VIEW: only owner can edit (via full editor)
           canEdit = isOwner;
