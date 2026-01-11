@@ -104,27 +104,49 @@ export function MotionCardSkeleton({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className={cn(
-        'rounded-xl bg-muted border border-border p-6',
+        'rounded-xl bg-blue-500/5 border border-blue-500/10 p-6 relative overflow-hidden',
         className
       )}
     >
-      <div className="space-y-3">
-        <motion.div
-          className="h-4 w-3/4 rounded bg-muted-foreground/20 shimmer-loading"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        />
-        <motion.div
-          className="h-3 w-1/2 rounded bg-muted-foreground/15 shimmer-loading"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
-        />
-        <motion.div
-          className="h-3 w-2/3 rounded bg-muted-foreground/15 shimmer-loading"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
-        />
+      <div className="space-y-4 relative z-10">
+        <div className="flex items-center gap-3">
+          <motion.div 
+            className="w-10 h-10 rounded-lg bg-blue-500/20"
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          <motion.div
+            className="h-5 w-3/4 rounded bg-blue-500/20"
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+        </div>
+        <div className="space-y-2">
+          <motion.div
+            className="h-3 w-full rounded bg-blue-500/10"
+            animate={{ opacity: [0.2, 0.4, 0.2] }}
+            transition={{ duration: 2, repeat: Infinity, delay: 0.2 }}
+          />
+          <motion.div
+            className="h-3 w-2/3 rounded bg-blue-500/10"
+            animate={{ opacity: [0.2, 0.4, 0.2] }}
+            transition={{ duration: 2, repeat: Infinity, delay: 0.4 }}
+          />
+        </div>
       </div>
+      
+      {/* Animated Blue Shimmer */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-400/10 to-transparent"
+        animate={{
+          x: ['-100%', '100%'],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+      />
     </motion.div>
   );
 }

@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import {
   MotionCard,
-  MotionCardSkeleton,
   MotionButton,
   MotionList,
   MotionListItem,
@@ -197,11 +196,17 @@ export default function DashboardPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="flex flex-col items-center justify-center py-20"
         >
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <MotionCardSkeleton key={i} />
-          ))}
+          <div className="relative">
+            <div className="h-12 w-12 rounded-full border-4 border-blue-500/20 border-t-blue-500 animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+            </div>
+          </div>
+          <p className="mt-4 text-sm font-medium text-muted-foreground animate-pulse">
+            Loading your notes...
+          </p>
         </motion.div>
       )}
 
